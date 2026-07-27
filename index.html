@@ -1,0 +1,3443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MINDLINK Version 3.2 - Interactive Student Wellness Companion</title>
+
+<!--
+========================================================
+MINDLINK Version 2.0 - IMP Assignment 2
+COMBINED Prototype (Member 1 + 2 + 3 + 4 merged)
+
+Member 1 (base app):
+1. Full login page
+2. Home page
+3. Wellness check-in page
+4. Check-in result page
+5. Settings page (dark/light mode, app colour, background colour)
+
+Member 2 (AI Companion):
+- AI Chat companion with emotionally-aware replies and quick prompts
+- AI Smart Study Planner with generated, colour-coded milestone roadmap
+
+Member 3 (Analytics Dashboard):
+- Mood, Stress, Workload and Well-being tabs
+- Stress trend graph, workload checklist, study timer, daily study modal
+- Virtual well-being pet, hydration & sleep check-ins, gratitude journal
+
+Member 4 (Peer Support & Resources):
+- Support resource search + recommended contacts
+- Peer support community groups with live-style group chat
+- Wellness ambassador support chat with tailored replies
+
+Fixes applied while merging:
+- Removed duplicate/near-duplicate CSS and JS shared by all four files
+  (kept one canonical copy of the base styles/scripts)
+- Home page feature cards now describe each member's FINISHED feature
+  instead of "Empty page" placeholder text
+- Restored the full Member 1 Settings page (Notifications, Privacy &
+  Safety, Background Colour, About) which some member files had trimmed
+- Unified showScreen() so navigating to Member 3's dashboard always
+  triggers renderMember3Dashboards() to refresh charts/checklists
+- Removed dead Member 4 functions (joinCommunity, requestAmbassador,
+  copySupportMessage) that referenced elements which do not exist in
+  the final markup and would have thrown errors if ever called
+- Standardised the toast z-index so it still shows correctly underneath
+  Member 3's modal overlays
+========================================================
+-->
+
+<style>
+:root{
+  --bg:#F4FBFF;
+  --card:#FFFFFF;
+  --text:#12304A;
+  --muted:#6D7E8F;
+  --line:#D9EAF5;
+  --primary:#2478E8;
+  --primary2:#E9F4FF;
+  --green:#37C686;
+  --green2:#E6FAF0;
+  --yellow:#FACC15;
+  --shadow:0 14px 35px rgba(18,48,74,.12);
+}
+
+body.dark{
+  --bg:#0E1726;
+  --card:#172337;
+  --text:#EAF4FF;
+  --muted:#A9B8C8;
+  --line:#26364D;
+  --primary2:#203B5F;
+  --green2:#193B2D;
+  --shadow:0 14px 35px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:linear-gradient(135deg,#DDF7EA,#EAF4FF);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  color:var(--text);
+  transition:.3s;
+}
+
+body.dark{
+  background:linear-gradient(135deg,#07111F,#10263F);
+}
+
+.phone{
+  width:390px;
+  height:844px;
+  background:var(--bg);
+  border-radius:42px;
+  border:10px solid #111827;
+  box-shadow:0 25px 80px rgba(0,0,0,.28);
+  overflow:hidden;
+  position:relative;
+}
+
+.screen{
+  display:none;
+  height:100%;
+  padding:24px 20px 28px;
+  overflow-y:auto;
+}
+
+.screen.active{display:block}
+
+.full{padding:0}
+
+.login-bg{
+  height:100%;
+  padding:34px 22px 28px;
+  background:
+    radial-gradient(circle at top left, rgba(255,255,255,.45), transparent 34%),
+    linear-gradient(160deg,var(--primary) 0%,#35C68B 68%,#F4FBFF 100%);
+  color:white;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+
+body.dark .login-bg{
+  background:
+    radial-gradient(circle at top left, rgba(255,255,255,.12), transparent 34%),
+    linear-gradient(160deg,#0A2342 0%,#106B5B 70%,#0E1726 100%);
+}
+
+.logo{text-align:center;margin-top:24px}
+
+.logo-mark{
+  width:98px;
+  height:98px;
+  margin:auto;
+  border-radius:34px;
+  display:grid;
+  place-items:center;
+  background:rgba(255,255,255,.22);
+  box-shadow:0 14px 35px rgba(0,0,0,.14);
+  font-size:48px;
+  backdrop-filter:blur(10px);
+}
+
+.logo h1{
+  margin:18px 0 4px;
+  font-size:38px;
+  letter-spacing:1px;
+}
+
+.logo p{margin:0;font-size:16px;opacity:.95}
+
+.tagline{
+  margin:22px auto 0;
+  max-width:300px;
+  text-align:center;
+  font-size:16px;
+  line-height:1.45;
+  opacity:.95;
+}
+
+.login-card{
+  background:rgba(255,255,255,.96);
+  color:#12304A;
+  border-radius:30px;
+  padding:22px;
+  box-shadow:var(--shadow);
+}
+
+body.dark .login-card{
+  background:rgba(23,35,55,.96);
+  color:var(--text);
+}
+
+.member-label{
+  display:inline-block;
+  background:var(--green2);
+  color:#167044;
+  padding:7px 12px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:900;
+  margin-bottom:14px;
+}
+
+body.dark .member-label{color:#8BF0BC}
+
+.input{
+  width:100%;
+  padding:15px;
+  border-radius:17px;
+  border:1px solid var(--line);
+  background:var(--card);
+  color:var(--text);
+  margin-bottom:12px;
+  font-size:14px;
+  outline:none;
+}
+
+.input:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(36,120,232,.14);
+}
+
+.btn{
+  width:100%;
+  border:0;
+  border-radius:17px;
+  padding:14px;
+  font-size:14px;
+  font-weight:900;
+  cursor:pointer;
+  background:var(--primary);
+  color:white;
+  margin-top:8px;
+}
+
+.btn.green{background:var(--green)}
+.btn.light{background:var(--primary2);color:var(--primary)}
+.btn.white{background:white;color:var(--primary)}
+.btn.outline{background:var(--card);color:var(--text);border:1px solid var(--line)}
+
+.small{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.4;
+}
+
+.note{text-align:center;color:white;font-size:12px}
+
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:16px;
+}
+
+.top h1{margin:0;font-size:22px}
+
+.back{
+  width:42px;
+  height:42px;
+  border-radius:15px;
+  border:0;
+  background:var(--card);
+  color:var(--primary);
+  font-weight:900;
+  cursor:pointer;
+  box-shadow:0 5px 14px rgba(18,48,74,.08);
+}
+
+.avatar{
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  background:linear-gradient(135deg,var(--primary),var(--green));
+  display:grid;
+  place-items:center;
+  color:white;
+  font-weight:900;
+  text-transform:uppercase;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(18,48,74,.16);
+}
+
+.hero{
+  background:linear-gradient(135deg,var(--primary),var(--green));
+  color:white;
+  border-radius:28px;
+  padding:22px;
+  box-shadow:var(--shadow);
+  margin-bottom:14px;
+}
+
+.hero h2{margin:0 0 8px;font-size:24px}
+.hero p{margin:0;font-size:14px;line-height:1.45;opacity:.96}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:24px;
+  padding:17px;
+  box-shadow:0 8px 22px rgba(18,48,74,.06);
+  margin-bottom:12px;
+}
+
+.card h3{margin:0 0 8px;font-size:17px}
+.card p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.feature{
+  min-height:136px;
+  cursor:pointer;
+}
+
+.icon{
+  width:45px;
+  height:45px;
+  border-radius:17px;
+  background:var(--primary2);
+  display:grid;
+  place-items:center;
+  font-size:24px;
+  margin-bottom:10px;
+}
+
+.tip-card{
+  background:linear-gradient(135deg,var(--primary2),var(--green2));
+  border:1px solid var(--line);
+  border-radius:24px;
+  padding:17px;
+  margin-bottom:12px;
+}
+
+.tip-card h3{margin:0 0 8px;font-size:17px}
+.tip-card p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}
+
+.mood-row{
+  display:flex;
+  justify-content:space-between;
+  margin:14px 0;
+}
+
+.mood{
+  width:58px;
+  height:72px;
+  border-radius:21px;
+  border:1px solid var(--line);
+  background:var(--card);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  font-size:24px;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.mood:hover{transform:translateY(-3px)}
+.mood small{font-size:10px;color:var(--muted)}
+.mood.selected{outline:3px solid var(--green);background:var(--green2)}
+
+.response-box{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:23px;
+  padding:17px;
+  margin-bottom:12px;
+  box-shadow:0 8px 22px rgba(18,48,74,.06);
+}
+
+.response-box h3{margin:0 0 8px}
+
+.scale{
+  display:flex;
+  gap:7px;
+  margin:12px 0;
+}
+
+.scale button{
+  flex:1;
+  border:0;
+  border-radius:13px;
+  background:var(--primary2);
+  color:var(--muted);
+  padding:11px 0;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.scale button.selected{
+  background:var(--primary);
+  color:white;
+}
+
+.progress{
+  height:10px;
+  background:var(--primary2);
+  border-radius:999px;
+  overflow:hidden;
+  margin-top:12px;
+}
+
+.bar{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,var(--green),var(--primary));
+  width:55%;
+  transition:.3s;
+}
+
+textarea{
+  width:100%;
+  height:92px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:13px;
+  font-family:inherit;
+  resize:none;
+  background:var(--card);
+  color:var(--text);
+  outline:none;
+}
+
+.result-icon{
+  width:84px;
+  height:84px;
+  border-radius:30px;
+  background:var(--green2);
+  display:grid;
+  place-items:center;
+  font-size:44px;
+  margin:0 auto 14px;
+}
+
+.setting-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+
+.switch{
+  width:58px;
+  height:32px;
+  border-radius:999px;
+  background:var(--primary2);
+  padding:4px;
+  cursor:pointer;
+  border:1px solid var(--line);
+}
+
+.knob{
+  width:22px;
+  height:22px;
+  background:var(--primary);
+  border-radius:50%;
+  transition:.25s;
+}
+
+body.dark .knob{
+  transform:translateX(26px);
+  background:var(--green);
+}
+
+.colours{
+  display:flex;
+  gap:10px;
+  margin-top:12px;
+}
+
+.colour-dot{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  border:3px solid var(--card);
+  box-shadow:0 0 0 1px var(--line);
+  cursor:pointer;
+}
+
+.blue{background:#2478E8}
+.purple{background:#7C5CFF}
+.teal{background:#00A6A6}
+.orange{background:#F59E0B}
+.pink{background:#EC4899}
+
+.empty-box{
+  border:2px dashed var(--line);
+  background:var(--card);
+  border-radius:26px;
+  padding:34px 18px;
+  text-align:center;
+  margin-top:18px;
+}
+
+.empty-icon{
+  font-size:52px;
+  margin-bottom:12px;
+}
+
+.toast{
+  position:absolute;
+  left:22px;
+  right:22px;
+  top:22px;
+  background:#12304A;
+  color:white;
+  padding:13px 15px;
+  border-radius:16px;
+  display:none;
+  z-index:150;
+  font-size:13px;
+  box-shadow:var(--shadow);
+}
+
+.toast.show{display:block}
+
+/* ========================================================
+   MEMBER 2 - DECORATED PLANNER VISUAL CLASSES
+   ======================================================== */
+.plan-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+.plan-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 6px 14px;
+  border-radius: 999px;
+  width: max-content;
+  margin-bottom: 10px;
+}
+.badge-low { background: #E6FAF0; color: #167044; border: 1px solid #BFEFDC; }
+.badge-medium { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
+.badge-high { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+
+.plan-step-card {
+  background: var(--card);
+  border-left: 4px solid var(--primary);
+  border-top: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0 16px 16px 0;
+  padding: 12px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  box-shadow: 0 4px 12px rgba(18,48,74,.03);
+}
+.plan-step-num {
+  background: var(--primary2);
+  color: var(--primary);
+  font-weight: 800;
+  font-size: 12px;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.plan-step-content h4 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  color: var(--text);
+}
+.plan-step-content p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* ========================================================
+   MEMBER 2 - SCROLLING & MOBILE USABILITY FIXES
+   ======================================================== */
+#member2{
+  min-height:0;
+  overflow:hidden;
+}
+#member2.active{
+  display:flex;
+  flex-direction:column;
+}
+#m2ChatTab,
+#m2PlannerTab{
+  min-height:0;
+}
+#m2ChatTab{
+  overflow:hidden;
+}
+#chatHistory{
+  min-height:0;
+  overflow-y:auto !important;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;
+  scrollbar-color:var(--primary) transparent;
+}
+#chatHistory::-webkit-scrollbar{width:6px;}
+#chatHistory::-webkit-scrollbar-track{background:transparent;}
+#chatHistory::-webkit-scrollbar-thumb{
+  background:var(--primary);
+  border-radius:999px;
+}
+#m2PlannerTab{
+  overflow-y:auto !important;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  padding-bottom:8px;
+}
+#m2Composer{
+  position:relative;
+  z-index:2;
+  background:var(--bg);
+  padding-top:4px;
+}
+@media (max-height:760px){
+  .phone{height:96vh;}
+  #member2{padding-top:16px;}
+  #member2 .top{margin-bottom:10px;}
+}
+
+/* ========================================================
+   MEMBER 3 EXPANDED STYLES WITH UPDATED LAYOUT INTERACTION
+   ======================================================== */
+.db-tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-bottom:14px;
+}
+.db-tab{
+  flex:1;
+  min-width:76px;
+  padding:10px 2px;
+  text-align:center;
+  font-size:10px;
+  font-weight:900;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:12px;
+  cursor:pointer;
+  color:var(--muted);
+  transition:.2s;
+}
+.db-tab.active{
+  background:var(--primary);
+  color:white;
+  border-color:var(--primary);
+}
+.stat-summary{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-bottom:12px;
+}
+.stat-mini{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:12px;
+  text-align:center;
+}
+.stat-mini h4{margin:0 0 4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+.stat-mini div{font-size:19px;font-weight:900}
+.chart-bar-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:10px;
+}
+.chart-label{width:65px;font-size:12px}
+.chart-track{
+  flex:1;
+  height:12px;
+  background:var(--primary2);
+  border-radius:999px;
+  overflow:hidden;
+}
+.chart-fill{
+  height:100%;
+  border-radius:999px;
+  transition: width 0.3s ease;
+}
+.history-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 0;
+  border-bottom:1px solid var(--line);
+}
+.history-item:last-child{border-bottom:0}
+.history-left{display:flex;align-items:center;gap:10px}
+.history-emoji{font-size:22px}
+.history-meta h4{margin:0;font-size:13px}
+.history-meta p{margin:0;font-size:11px;color:var(--muted)}
+.history-right{font-size:11px;background:var(--primary2);padding:4px 8px;border-radius:9999px;font-weight:700}
+
+/* High-Precision SVG Graph Configurations */
+.trend-container {
+  position: relative;
+  margin: 20px 0 10px;
+  padding-bottom: 5px;
+}
+/* Ensure the wrapper maintains exact 3.5:1 ratio of the viewBox to allow % positioning of HTML elements */
+.svg-aspect-wrapper {
+  position: relative;
+  width: 100%;
+  padding-bottom: 28.57%; /* 100 / 350 = 28.57% */
+}
+.trend-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.trend-days-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding: 0 2px;
+}
+.trend-day-btn {
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--text);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: .2s;
+}
+.trend-day-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+.log-detail-box {
+  background: var(--primary2);
+  border-radius: 16px;
+  padding: 12px;
+  margin-top: 14px;
+  border-left: 4px solid var(--primary);
+}
+
+.peak-stress-marker {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: #EF4444;
+  border: 2.5px solid #FFFFFF;
+  border-radius: 50%;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.3);
+  z-index: 10;
+  transition: top 0.2s, left 0.2s;
+  padding: 0;
+}
+
+/* Modal overlays */
+.m3-modal-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(18, 48, 74, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.m3-modal-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.m3-modal-card {
+  background: var(--card);
+  border-radius: 28px;
+  padding: 22px;
+  text-align: center;
+  width: 100%;
+  box-shadow: var(--shadow);
+  max-height: 90%;
+  overflow-y: auto;
+}
+
+/* Checklist layout enhancements */
+.workload-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color 0.2s;
+  border-radius: 8px;
+}
+.workload-item:active {
+  background-color: var(--primary2);
+}
+.workload-item:last-child {
+  border-bottom: 0;
+}
+.workload-cb {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  margin-left: 4px;
+  cursor: pointer;
+  accent-color: var(--green);
+}
+.workload-item.completed-task .workload-title {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.workload-body-content {
+  flex: 1;
+}
+.workload-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.workload-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+}
+.workload-tag {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+.tag-high { background: #FEE2E2; color: #EF4444; }
+.tag-medium { background: #FEF3C7; color: #D97706; }
+.tag-low { background: #E6FAF0; color: #10B981; }
+
+.circular-progress-box {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 8px 0;
+}
+.circular-svg-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+}
+.circle-bg-ring {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 8;
+}
+.circle-fill-ring {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  transition: stroke-dashoffset 0.35s;
+}
+
+/* Updated Virtual Pet (Snowman) Ecosystem */
+.pet-box-display {
+  background: linear-gradient(to bottom, var(--primary2), var(--card));
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 12px;
+  perspective: 1000px;
+}
+.snowman-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.3s;
+}
+.snowman-head {
+  width: 60px; height: 60px;
+  background: white; border-radius: 50%;
+  position: relative; z-index: 2;
+  box-shadow: inset -5px -5px 12px rgba(0,0,0,0.1);
+  transition: background-color 0.3s;
+}
+.snowman-body {
+  width: 84px; height: 84px;
+  background: white; border-radius: 50%;
+  position: relative; z-index: 1; margin-top: -15px;
+  box-shadow: inset -5px -5px 12px rgba(0,0,0,0.1);
+  transition: background-color 0.3s;
+}
+.snowman-hair {
+  position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+  font-size: 14px; font-weight: bold; color: #12304A; letter-spacing: 2px;
+}
+.snowman-arms {
+  position: absolute; width: 140px; top: 15px; left: -28px;
+  display: flex; justify-content: space-between; z-index: 0;
+}
+.snowman-arm {
+  width: 40px; height: 4px; background: #8B4513; border-radius: 2px; position: relative;
+}
+.snowman-hand {
+  width: 8px; height: 8px; background: #8B4513; border-radius: 50%; position: absolute; top: -2px;
+}
+.arm-left { transform: rotate(20deg); }
+.arm-left .snowman-hand { left: -4px; }
+.arm-right { transform: rotate(-20deg); }
+.arm-right .snowman-hand { right: -4px; }
+
+.snowman-legs {
+  position: absolute; bottom: -8px; width: 50px; left: 17px;
+  display: flex; justify-content: space-between;
+}
+.snowman-leg {
+  width: 18px; height: 18px; background: white; border-radius: 50%;
+  box-shadow: inset -2px -2px 5px rgba(0,0,0,0.1);
+}
+
+.pet-eye {
+  position: absolute; width: 7px; height: 7px; background: #12304A; border-radius: 50%; top: 22px;
+}
+.pet-eye.left { left: 15px; }
+.pet-eye.right { right: 15px; }
+.pet-mouth {
+  position: absolute; width: 12px; height: 6px;
+  border: 2px solid #12304A; border-top: 0; border-radius: 0 0 10px 10px;
+  top: 36px; left: 22px;
+}
+
+/* CSS Drawn Clothing and Overlays */
+.clothing-layer {
+  position: absolute; border-radius: 50%; pointer-events: none;
+}
+.clothing-layer.pattern-striped {
+  border: 4px dashed rgba(255,255,255,0.7); width: 78px; height: 78px; top: 3px; left: 3px;
+}
+.clothing-layer.pattern-dots {
+  border: 4px dotted rgba(0,0,0,0.3); width: 76px; height: 76px; top: 4px; left: 4px;
+}
+.clothing-layer.pattern-solid {
+  border: 4px solid rgba(255,255,255,0.4); width: 76px; height: 76px; top: 4px; left: 4px;
+}
+.accessory-layer { position: absolute; pointer-events: none; }
+
+/* Custom Vector Pet Accessories (No Emojis!) */
+.css-hat { position: absolute; top: -18px; left: 12px; width: 36px; display: flex; flex-direction: column; align-items: center; z-index: 10; }
+.hat-top { width: 24px; height: 20px; background: #222; border-radius: 3px 3px 0 0; }
+.hat-brim { width: 36px; height: 5px; background: #111; border-radius: 2px; }
+
+.css-glasses { position: absolute; top: 19px; left: 9px; width: 42px; display: flex; align-items: center; justify-content: space-between; z-index: 10; }
+.lens { width: 16px; height: 14px; border-radius: 4px 4px 10px 10px; }
+.lens.dark { background: #111; }
+.lens.clear { background: rgba(255,255,255,0.4); border: 2px solid #333; border-radius: 50%; width: 16px; height: 16px; }
+.glasses-bridge { width: 10px; height: 2px; background: #333; position: absolute; left: 16px; top: 5px; }
+
+.css-necktie { position: absolute; top: 0px; left: 36px; display: flex; flex-direction: column; align-items: center; z-index: 10; }
+.tie-knot { width: 10px; height: 8px; background: #EF4444; border-radius: 2px; }
+.tie-long { width: 12px; height: 28px; background: #EF4444; clip-path: polygon(20% 0, 80% 0, 100% 80%, 50% 100%, 0 80%); margin-top: -2px;}
+
+.css-scarf { position: absolute; top: -6px; left: 14px; z-index: 10; }
+.scarf-wrap { width: 56px; height: 14px; background: #10B981; border-radius: 8px; }
+.scarf-tail { width: 12px; height: 24px; background: #10B981; position: absolute; right: 10px; top: 10px; border-radius: 4px; }
+
+
+/* Emote motion presets animation tags */
+@keyframes petWave {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(-5px) rotate(-5deg); }
+  75% { transform: translateX(5px) rotate(5deg); }
+}
+@keyframes petJump {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-30px); }
+}
+@keyframes petSpin {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+
+.animate-wave { animation: petWave 0.5s ease 2; }
+.animate-jump { animation: petJump 0.4s ease 2; }
+.animate-spin { animation: petSpin 0.8s ease 1; }
+
+.wardrobe-tabs-row {
+  display: flex; gap: 4px; margin: 8px 0; overflow-x: auto;
+}
+.wardrobe-pill {
+  padding: 5px 10px; background: var(--primary2); border: 1px solid var(--line);
+  font-size: 11px; border-radius: 20px; cursor: pointer; white-space: nowrap;
+}
+
+/* Deep Breathing Pulse Animations */
+@keyframes deepBreathe {
+  0% { transform: scale(1); box-shadow: 0 0 10px rgba(36,120,232,0.2); }
+  33% { transform: scale(1.6); box-shadow: 0 0 30px rgba(36,120,232,0.6); }
+  50% { transform: scale(1.6); box-shadow: 0 0 30px rgba(36,120,232,0.6); }
+  83% { transform: scale(1); box-shadow: 0 0 10px rgba(36,120,232,0.2); }
+  100% { transform: scale(1); box-shadow: 0 0 10px rgba(36,120,232,0.2); }
+}
+.breathe-circle {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: var(--primary2); border: 3px solid var(--primary);
+  margin: 0 auto; display: grid; place-items: center;
+  color: var(--primary); font-weight: 900;
+  animation: deepBreathe 12s infinite ease-in-out;
+}
+.breathe-container {
+  padding: 40px 20px 50px 20px; text-align: center;
+}
+
+/* Study Modal Legend */
+.legend-item { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: bold; margin: 4px; }
+.legend-color { width: 10px; height: 10px; border-radius: 50%; }
+
+/* ========================================================
+   MEMBER 4 - PEER SUPPORT & RESOURCES STYLES
+   ======================================================== */
+.member4-tabs{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:8px;
+  margin-bottom:12px;
+}
+.member4-tabs button{
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:var(--card);
+  color:var(--text);
+  padding:11px 6px;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.member4-tabs button.active{
+  background:var(--primary);
+  color:white;
+  border-color:var(--primary);
+}
+.mini-pill{
+  display:inline-block;
+  background:var(--primary2);
+  color:var(--primary);
+  padding:7px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:900;
+  margin:5px 5px 0 0;
+}
+.support-list p{margin-bottom:10px;}
+
+.group-card{
+  border:1px solid var(--line);
+  background:var(--card);
+  border-radius:20px;
+  padding:14px;
+  margin-top:10px;
+  cursor:pointer;
+}
+.group-card h4{margin:0 0 6px;font-size:15px;}
+.group-card p{margin:0;color:var(--muted);font-size:12px;line-height:1.4;}
+.group-meta{display:flex;justify-content:space-between;gap:8px;margin-top:10px;align-items:center;}
+.group-meta span{font-size:11px;color:var(--muted);}
+.chat-box{
+  background:var(--primary2);
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:13px;
+  margin-bottom:10px;
+}
+.chat-msg{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:10px 12px;
+  margin:8px 0;
+  font-size:12px;
+  line-height:1.4;
+}
+.chat-msg.me{
+  background:var(--green2);
+}
+.quick-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin:10px 0;
+}
+.quick-row button{
+  border:0;
+  border-radius:999px;
+  background:var(--primary2);
+  color:var(--primary);
+  padding:8px 10px;
+  font-size:11px;
+  font-weight:900;
+  cursor:pointer;
+}
+.resource-action{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:10px;
+}
+
+
+/* ========================================================
+   VERSION 3 - CLEAR NAVIGATION, NEW LOGO & GUIDED TUTORIAL
+   ======================================================== */
+.logo-mark{
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(145deg,rgba(255,255,255,.34),rgba(255,255,255,.14));
+  border:1px solid rgba(255,255,255,.42);
+}
+.mindlink-logo-svg{width:74px;height:74px;filter:drop-shadow(0 8px 12px rgba(0,0,0,.16));}
+.home-actions{display:flex;gap:8px;align-items:center;}
+.help-btn{width:auto;min-width:42px;padding:11px 13px;margin:0;border-radius:15px;}
+.priority-support{
+  background:linear-gradient(135deg,#FFF7ED,var(--card));
+  border:2px solid #FDBA74;
+  position:relative;
+}
+.priority-badge{display:inline-block;background:#FFEDD5;color:#9A3412;font-size:10px;font-weight:900;padding:5px 8px;border-radius:999px;margin-bottom:8px;}
+.feature-primary{grid-column:1/-1;min-height:auto;display:flex;align-items:center;gap:13px;border:2px solid var(--green);}
+.feature-primary .icon{margin:0;flex:0 0 48px;}
+.feature-primary div:last-child{flex:1;}
+.tutorial-overlay{position:absolute;inset:0;background:rgba(7,17,31,.72);backdrop-filter:blur(5px);z-index:500;display:none;align-items:center;justify-content:center;padding:22px;}
+.tutorial-overlay.show{display:flex;}
+.tutorial-card{width:100%;background:var(--card);border-radius:28px;padding:22px;box-shadow:var(--shadow);max-height:88%;overflow-y:auto;}
+.tutorial-progress{display:flex;gap:6px;margin:14px 0;}
+.tutorial-dot{height:7px;flex:1;border-radius:999px;background:var(--line);}
+.tutorial-dot.active{background:var(--primary);}
+.tutorial-visual{width:76px;height:76px;border-radius:25px;background:var(--primary2);display:grid;place-items:center;font-size:38px;margin:4px auto 14px;}
+.tutorial-nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px;}
+.depression-step{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);}
+.depression-step:last-child{border-bottom:0;}
+.depression-step strong{display:block;font-size:13px;margin-bottom:3px;}
+.depression-step span{font-size:12px;color:var(--muted);line-height:1.4;}
+
+
+/* ========================================================
+   VERSION 3.1 - ACCESSIBLE CONTRAST & INTERACTIVE MOTION
+   ======================================================== */
+:root{
+  --on-primary:#FFFFFF;
+  --danger:#B42318;
+  --danger-soft:#FFF1F0;
+  --warning-text:#7A2E0E;
+}
+body.dark{
+  --text:#F4F8FC;
+  --muted:#C7D3E0;
+  --line:#3A4C63;
+  --primary2:#223F63;
+  --green2:#1B4936;
+  --danger-soft:#40201F;
+  --warning-text:#FFD2B8;
+}
+
+/* Keep every common text surface readable in both themes. */
+.card,.response-box,.tip-card,.tutorial-card,.chat-msg,.group-card,.stat-mini,
+.plan-step-card,.log-detail-box,.login-card,.input,textarea,select{
+  color:var(--text);
+}
+.card p,.response-box p,.tip-card p,.tutorial-card p,.group-card p,
+.plan-step-content p,.small,.depression-step span,.history-meta p{
+  color:var(--muted);
+}
+.hero,.btn:not(.light):not(.outline):not(.white),.db-tab.active,
+.member4-tabs button.active,.scale button.selected{
+  color:var(--on-primary);
+}
+body.dark .btn.light,body.dark .quick-row button,body.dark .mini-pill{
+  color:#9CCBFF;
+}
+body.dark .btn.outline,body.dark .back,body.dark .member4-tabs button,
+body.dark .db-tab,body.dark .trend-day-btn{
+  color:var(--text);
+}
+body.dark .priority-support{
+  background:linear-gradient(135deg,#3A281F,var(--card));
+  border-color:#F59E0B;
+}
+body.dark .priority-badge{
+  background:#5A3218;
+  color:#FFE2C2;
+}
+body.dark [style*="color:#167044"]{color:#86F0B8 !important;}
+body.dark [style*="color:#EF4444"]{color:#FF8D8D !important;}
+body.dark [style*="color:#92400E"]{color:#FFD58A !important;}
+body.dark [style*="color:#991B1B"]{color:#FFAAAA !important;}
+body.dark [style*="color:#12304A"]{color:var(--text) !important;}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:.9;}
+
+/* Screen and card motion */
+@keyframes screenEnter{from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:none}}
+@keyframes cardRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes logoFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-7px) rotate(2deg)}}
+@keyframes softPulse{0%,100%{box-shadow:0 0 0 0 rgba(55,198,134,.18)}50%{box-shadow:0 0 0 10px rgba(55,198,134,0)}}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+@keyframes modalPop{from{opacity:0;transform:translateY(18px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes toastDrop{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+@keyframes ripple{to{transform:scale(4);opacity:0}}
+
+.screen.active{animation:screenEnter .36s cubic-bezier(.2,.8,.2,1);}
+.screen.active .card,.screen.active .tip-card,.screen.active .response-box{
+  animation:cardRise .42s both;
+}
+.screen.active .card:nth-of-type(2){animation-delay:.05s}
+.screen.active .card:nth-of-type(3){animation-delay:.1s}
+.screen.active .card:nth-of-type(4){animation-delay:.15s}
+.logo-mark{animation:logoFloat 3.5s ease-in-out infinite;}
+.feature-primary{animation:softPulse 2.8s ease-in-out infinite;}
+.tutorial-overlay.show,.m3-modal-overlay.show{animation:overlayIn .22s ease-out;}
+.tutorial-overlay.show .tutorial-card,.m3-modal-overlay.show .m3-modal-card{animation:modalPop .3s cubic-bezier(.2,.8,.2,1);}
+.toast.show{animation:toastDrop .25s ease-out;}
+
+/* Responsive interaction feedback */
+.card.feature,.group-card,.btn,.back,.mood,.db-tab,.member4-tabs button,.quick-row button,
+.trend-day-btn,.colour-dot,.switch{
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease;
+}
+.card.feature:hover,.group-card:hover{transform:translateY(-5px);box-shadow:0 14px 28px rgba(18,48,74,.14);}
+.btn:hover,.back:hover,.quick-row button:hover{transform:translateY(-2px);}
+.btn:active,.back:active,.card.feature:active,.group-card:active{transform:scale(.97);}
+.card.feature:focus-visible,.btn:focus-visible,.back:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{
+  outline:3px solid rgba(36,120,232,.38);outline-offset:3px;
+}
+.ripple-host{position:relative;overflow:hidden;}
+.click-ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.45);width:26px;height:26px;pointer-events:none;transform:scale(0);animation:ripple .55s linear;}
+body.dark .click-ripple{background:rgba(156,203,255,.34);}
+
+/* Respect users who prefer less motion. */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;scroll-behavior:auto !important;transition-duration:.01ms !important;}
+}
+
+
+
+/* ========================================================
+   VERSION 3.2 - NAVIGATION, ACCESSIBILITY & POLISH
+   ======================================================== */
+:root{
+  --danger:#D92D20;
+  --danger-soft:#FFF0EE;
+  --focus-ring:0 0 0 4px rgba(36,120,232,.24);
+}
+body.dark{
+  --danger:#FF8A80;
+  --danger-soft:#43201F;
+}
+.phone{isolation:isolate;}
+.screen:not(.full){padding-bottom:94px;}
+
+.app-bottom-nav{
+  position:absolute;
+  left:12px;right:12px;bottom:10px;
+  z-index:180;
+  display:none;
+  grid-template-columns:repeat(5,1fr);
+  gap:4px;
+  padding:7px;
+  border:1px solid var(--line);
+  border-radius:22px;
+  background:color-mix(in srgb,var(--card) 92%,transparent);
+  box-shadow:0 12px 30px rgba(18,48,74,.18);
+  backdrop-filter:blur(18px);
+}
+.app-bottom-nav.show{display:grid;animation:navRise .28s ease-out;}
+.nav-btn{
+  border:0;background:transparent;color:var(--muted);
+  min-width:0;padding:7px 2px 6px;border-radius:15px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  font:inherit;font-size:9px;font-weight:800;cursor:pointer;
+}
+.nav-btn .nav-icon{font-size:19px;line-height:1;transition:transform .2s ease;}
+.nav-btn.active{background:var(--primary2);color:var(--primary);}
+.nav-btn.active .nav-icon{transform:translateY(-2px) scale(1.08);}
+.nav-btn:focus-visible{outline:none;box-shadow:var(--focus-ring);}
+
+.skip-link{position:absolute;left:14px;top:-60px;z-index:1000;background:var(--card);color:var(--text);padding:10px 14px;border-radius:12px;font-weight:800;transition:top .2s;}
+.skip-link:focus{top:14px;}
+
+.safety-note{border-left:5px solid var(--danger);background:var(--danger-soft);}
+.safety-note h3{color:var(--danger);}
+.status-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--green2);color:#12633d;font-size:11px;font-weight:900;}
+body.dark .status-chip{color:#9EF1C5;}
+
+.card[onclick],.feature,.group-card,.mood,.quick-row button,.back,.avatar{touch-action:manipulation;}
+.card[onclick]:focus-visible,.feature:focus-visible,.group-card:focus-visible,.mood:focus-visible,.avatar:focus-visible,.back:focus-visible{outline:none;box-shadow:var(--focus-ring);}
+
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:16px 0 10px;}
+.section-heading h2{font-size:17px;margin:0;}
+.section-heading span{font-size:11px;color:var(--muted);}
+
+@keyframes navRise{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:none}}
+@media (max-width:430px){
+  body{align-items:stretch;background:var(--bg);}
+  .phone{width:100vw;height:100dvh;border:0;border-radius:0;box-shadow:none;}
+  .screen{padding-left:18px;padding-right:18px;}
+  .app-bottom-nav{bottom:max(8px,env(safe-area-inset-bottom));}
+}
+@media (prefers-reduced-motion:reduce){.app-bottom-nav.show{animation:none}.nav-btn .nav-icon{transition:none}}
+
+</style>
+</head>
+
+<body>
+<div class="phone">
+<a class="skip-link" href="#home" onclick="showScreen('home')">Skip to main content</a>
+
+<div id="toast" class="toast" role="status" aria-live="polite">Action completed</div>
+<nav id="appBottomNav" class="app-bottom-nav" aria-label="Main navigation">
+  <button class="nav-btn" data-screen="home" onclick="showScreen('home')" aria-label="Home"><span class="nav-icon">⌂</span><span>Home</span></button>
+  <button class="nav-btn" data-screen="checkin" onclick="showScreen('checkin')" aria-label="Wellness check-in"><span class="nav-icon">🙂</span><span>Check-in</span></button>
+  <button class="nav-btn" data-screen="member2" onclick="showScreen('member2')" aria-label="AI companion"><span class="nav-icon">🤖</span><span>AI</span></button>
+  <button class="nav-btn" data-screen="member3" onclick="showScreen('member3')" aria-label="Well-being insights"><span class="nav-icon">📊</span><span>Insights</span></button>
+  <button class="nav-btn" data-screen="member4" onclick="showScreen('member4')" aria-label="Peer support and help"><span class="nav-icon">🫶</span><span>Support</span></button>
+</nav>
+
+
+<div id="tutorialOverlay" class="tutorial-overlay" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
+  <div class="tutorial-card">
+    <button class="back" style="float:right;box-shadow:none" onclick="closeTutorial()" aria-label="Close tutorial">✕</button>
+    <div id="tutorialVisual" class="tutorial-visual">👋</div>
+    <h2 id="tutorialTitle" style="margin:0 0 8px;text-align:center">Welcome to MINDLINK</h2>
+    <p id="tutorialText" class="small" style="font-size:13px;text-align:center">This short guide will show you where to check in, get immediate support, plan your studies and track your well-being.</p>
+    <div id="tutorialProgress" class="tutorial-progress"></div>
+    <div class="tutorial-nav">
+      <button id="tutorialBack" class="btn outline" onclick="tutorialPrevious()">Back</button>
+      <button id="tutorialNext" class="btn green" onclick="tutorialNext()">Next</button>
+    </div>
+    <button class="btn light" onclick="closeTutorial()">Skip Tutorial</button>
+  </div>
+</div>
+
+<!-- ========================================================
+     MEMBER 3 MODAL OVERLAYS (Study timer, Add task, Daily study,
+     Peak stress insight, Hydration, Sleep quality)
+     ======================================================== -->
+<div id="m3PeakModal" class="m3-modal-overlay" onclick="closePeakModal()">
+  <div class="m3-modal-card" onclick="event.stopPropagation()">
+    <div class="m3-modal-icon">🌱</div>
+    <h3 id="m3ModalTitle" style="margin: 0 0 8px; font-size:18px; color:#EF4444;">Peak Stress Day Identified</h3>
+    <p id="m3ModalBody" style="margin: 0 0 16px; font-size:13px; line-height:1.5; color:var(--text);">Loading insightful wisdom details...</p>
+    <button class="btn" style="margin:0;" onclick="closePeakModal()">Got it, thank you</button>
+  </div>
+</div>
+
+<div id="addTaskModal" class="m3-modal-overlay" onclick="closeAddTaskModal()">
+  <div class="m3-modal-card" onclick="event.stopPropagation()">
+    <h3 style="margin: 0 0 12px; font-size:16px;">Add New Custom Task</h3>
+    <input type="text" id="newTaskTitleInput" class="input" placeholder="Task description name...">
+    <select id="newTaskPrioritySelect" class="input">
+      <option value="High Priority">High Priority</option>
+      <option value="Medium Priority">Medium Priority</option>
+      <option value="Low Priority">Low Priority</option>
+    </select>
+    <input type="text" id="newTaskDueInput" class="input" placeholder="Due date e.g. Friday">
+    <button class="btn green" onclick="submitInjectedTask()">Insert Task Card</button>
+    <button class="btn outline" style="margin-top:6px;" onclick="closeAddTaskModal()">Cancel</button>
+  </div>
+</div>
+
+<div id="studyTimerModal" class="m3-modal-overlay" onclick="closeStudyTimerModal()">
+  <div class="m3-modal-card" onclick="event.stopPropagation()">
+    <div style="font-size:42px; margin-bottom:6px;">⏱️</div>
+    <h3 style="margin:0 0 4px; font-size:18px;">Study Session Desk</h3>
+    <p class="small" style="margin-bottom:14px;">Focus completely on your core academics</p>
+
+    <div id="stopwatchDisplay" style="font-size:36px; font-weight:900; font-family:monospace; margin:16px 0; color:var(--primary);">00:00:00</div>
+
+    <div style="display:flex; gap:8px;">
+      <button id="toggleTimerBtn" class="btn green" onclick="toggleStopwatchSystem()">Start Session</button>
+      <button class="btn outline" onclick="resetStopwatchSystem()">Reset</button>
+    </div>
+
+    <button class="btn light" style="margin-top:12px;" onclick="closeStudyTimerModal()">Close</button>
+  </div>
+</div>
+
+<div id="dailyStudyModal" class="m3-modal-overlay" onclick="closeDailyStudyModal()">
+  <div class="m3-modal-card" onclick="event.stopPropagation()" style="position:relative;">
+    <button onclick="closeDailyStudyModal()" style="position:absolute; top:15px; right:15px; background:none; border:none; font-size:20px; cursor:pointer; color:var(--muted);">✕</button>
+    <h3 style="margin-top:0;">📊 Daily Total Study Records</h3>
+    <p class="small" style="margin-bottom:12px;">Click any calendar day below to trigger target feedback highlights:</p>
+
+    <div style="display:flex; justify-content:center; margin:8px 0 14px;">
+      <canvas id="m3AcademicPieChartCanvas" width="130" height="130"></canvas>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; justify-content:center; margin-bottom:12px;">
+      <div class="legend-item"><div class="legend-color" style="background:#2478E8;"></div> Mon</div>
+      <div class="legend-item"><div class="legend-color" style="background:#7C5CFF;"></div> Tue</div>
+      <div class="legend-item"><div class="legend-color" style="background:#00A6A6;"></div> Wed</div>
+      <div class="legend-item"><div class="legend-color" style="background:#F59E0B;"></div> Thu</div>
+      <div class="legend-item"><div class="legend-color" style="background:#EC4899;"></div> Fri</div>
+      <div class="legend-item"><div class="legend-color" style="background:#37C686;"></div> Sat</div>
+      <div class="legend-item"><div class="legend-color" style="background:#6D7E8F;"></div> Sun</div>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; gap:2px;">
+      <button class="trend-day-btn" style="width:28px; height:28px; font-size:10px;" onclick="triggerDayStudyInsight('Monday')">M</button>
+      <button class="trend-day-btn" style="width:28px; height:28px; font-size:10px;" onclick="triggerDayStudyInsight('Tuesday')">T</button>
+      <button class="trend-day-btn" style="width:28px; height:28px; font-size:10px;" onclick="triggerDayStudyInsight('Wednesday')">W</button>
+      <button class="trend-day-btn" style="width:28px; height:28px; font-size:10px;" onclick="triggerDayStudyInsight('Thursday')">T</button>
+      <button class="trend-day-btn" style="width:28px; height:28px; font-size:10px;" onclick="triggerDayStudyInsight('Friday')">F</button>
+      <button class="trend-day-btn" style="width:28px; height:28px; font-size:10px;" onclick="triggerDayStudyInsight('Saturday')">S</button>
+      <button class="trend-day-btn" style="width:28px; height:28px; font-size:10px;" onclick="triggerDayStudyInsight('Sunday')">S</button>
+    </div>
+
+    <div id="m3StudyFeedbackDynamicBox" class="log-detail-box" style="margin-top:12px; border-left-color:var(--green); background:var(--green2); display:none;">
+      <p class="small" id="m3StudyFeedbackDynamicText" style="margin:0; font-weight:700; color:#167044;"></p>
+    </div>
+  </div>
+</div>
+
+<!-- Hydration Modal -->
+<div id="hydrationModal" class="m3-modal-overlay" onclick="closeHydrationModal()">
+  <div class="m3-modal-card" onclick="event.stopPropagation()">
+    <div style="font-size:42px; margin-bottom:6px;">💧</div>
+    <h3 style="margin:0 0 12px; font-size:18px;">Hydration Tracker</h3>
+
+    <div id="hydroStep1">
+      <p class="small" style="margin-bottom:12px;">Let's calculate your baseline fluid requirements based on the standard formula: <br><strong>Water Needs (oz) = Body Weight (lbs) × 0.5</strong></p>
+      <input type="number" id="bodyWeightInput" class="input" placeholder="Enter your body weight (lbs)">
+      <button class="btn green" onclick="calculateHydration()">Calculate Requirement</button>
+    </div>
+
+    <div id="hydroStep2" style="display:none;">
+      <p class="small" style="margin-bottom:12px; font-size:14px;">Your recommended daily intake is: <strong id="hydroGoalText" style="color:var(--primary); font-size:16px;">0</strong> <strong>oz</strong>.</p>
+      <input type="number" id="waterIntakeInput" class="input" placeholder="How much water did you drink today? (oz)">
+      <button class="btn green" onclick="checkHydration()">Log Check-in</button>
+      <div id="hydroFeedback" style="margin-top:14px; font-size:14px; font-weight:700; line-height:1.4;"></div>
+    </div>
+
+    <button class="btn outline" style="margin-top:12px;" onclick="closeHydrationModal()">Close</button>
+  </div>
+</div>
+
+<!-- Sleep Quality Modal -->
+<div id="sleepModal" class="m3-modal-overlay" onclick="closeSleepModal()">
+  <div class="m3-modal-card" onclick="event.stopPropagation()">
+    <div style="font-size:42px; margin-bottom:6px;">💤</div>
+    <h3 style="margin:0 0 12px; font-size:18px;">Sleep Quality</h3>
+    <p class="small" style="margin-bottom:12px;">The recommended sleeping hours for an adult is <strong>7-9 hours</strong>.</p>
+
+    <input type="number" id="sleepHoursInput" class="input" placeholder="How many hours did you sleep last night?">
+    <button class="btn green" onclick="checkSleep()">Log Sleep Hours</button>
+    <div id="sleepFeedback" style="margin-top:14px; font-size:14px; font-weight:700; line-height:1.4;"></div>
+
+    <button class="btn outline" style="margin-top:12px;" onclick="closeSleepModal()">Close</button>
+  </div>
+</div>
+
+<section id="login" class="screen full active">
+  <div class="login-bg">
+    <div>
+      <div class="logo">
+        <div class="logo-mark" aria-label="MINDLINK logo">
+          <svg class="mindlink-logo-svg" viewBox="0 0 100 100" role="img" aria-hidden="true">
+            <defs><linearGradient id="mlg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset="1" stop-color="#DDF7EA"/></linearGradient></defs>
+            <path d="M35 20c-12 0-21 9-21 21 0 6 3 12 8 16-3 4-4 9-2 14 3 8 12 12 20 9 3 7 12 11 20 8 7-3 11-10 10-17 8-2 14-10 13-19-1-7-5-12-11-15 0-11-9-20-20-20-6 0-11 2-15 7-1-3-1-4-2-4z" fill="url(#mlg)"/>
+            <path d="M39 27v48M61 25v52M28 42h11M61 40h13M29 61h10M61 60h12" stroke="#2478E8" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="39" cy="42" r="5" fill="#37C686"/><circle cx="61" cy="40" r="5" fill="#37C686"/><circle cx="39" cy="61" r="5" fill="#37C686"/><circle cx="61" cy="60" r="5" fill="#37C686"/>
+            <path d="M44 50h12" stroke="#12304A" stroke-width="5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h1>MINDLINK</h1>
+        <p>Version 3.2</p>
+      </div>
+
+      <div class="tagline">
+        A calm student wellness app to help manage stress, workload and emotional well-being.
+      </div>
+    </div>
+
+    <div class="login-card">
+      <span class="member-label">Secure Student Login</span>
+
+      <input id="email" class="input" type="email" placeholder="Email address">
+      <input id="password" class="input" type="password" placeholder="Password">
+
+      <button class="btn green" onclick="login()">Log In</button>
+      <button class="btn light" onclick="demoLogin()">Use Demo Student Account</button>
+
+      <p class="small" style="text-align:center;margin-top:12px">
+        Example: John@gmail.com will show “John”
+      </p>
+    </div>
+
+    <p class="note">IMP Assignment 2 Prototype | Combined Team Build</p>
+  </div>
+</section>
+
+<section id="home" class="screen">
+  <div class="top">
+    <div>
+      <span class="member-label">Student Wellness Home</span>
+      <h1>Hi, <span id="welcomeName">Student</span> 👋</h1>
+      <p class="small"><span id="greeting">Welcome</span> • <span id="todayDate"></span></p><p class="small">Tap your profile circle to open Settings.</p>
+    </div>
+    <div class="home-actions"><button class="btn light help-btn" onclick="openTutorial()" title="How to use MINDLINK">?</button><div id="avatar" class="avatar" onclick="showScreen('settings')" title="Open Settings">S</div></div>
+  </div>
+
+  <div class="card priority-support" onclick="openSupportFromCheckin()" style="cursor:pointer">
+    <span class="priority-badge">IMPORTANT • EASY ACCESS</span>
+    <h3>🆘 Need support right now?</h3>
+    <p>Quickly find trusted people, peer support and help resources. If you feel unsafe or may harm yourself, contact local emergency services or a trusted person immediately.</p>
+    <button class="btn green">Open Support Now</button>
+  </div>
+
+  <div class="hero">
+    <span class="status-chip">● Your private wellness space</span>
+    <h2 style="margin-top:12px">🌿 Daily Inspirational Quote</h2>
+    <p id="dailyQuote"><em>"Every small step you take today is progress toward a brighter tomorrow."</em></p>
+  </div>
+
+  <div class="section-heading"><h2>What would you like to do?</h2><span>Choose one tool</span></div>
+  <div class="grid">
+    <div class="card feature feature-primary" onclick="showScreen('checkin')">
+      <div class="icon">🙂</div><div><h3>Wellness Check-in</h3><p>Tell MINDLINK how you feel and receive a suggested next step.</p></div>
+    </div>
+    <div class="card feature" onclick="showScreen('member2')"><div class="icon">🤖</div><h3>AI Companion</h3><p>Talk through feelings and create a smart study plan.</p></div>
+    <div class="card feature" onclick="showScreen('member3')"><div class="icon">📊</div><h3>Well-being Insights</h3><p>Track mood, stress, workload, sleep and hydration.</p></div>
+    <div class="card feature" onclick="showScreen('member4')"><div class="icon">🫶</div><h3>Peer Support & Help</h3><p>Find communities, trusted support and practical resources.</p></div>
+    <div class="card feature" onclick="openTutorial()"><div class="icon">🧭</div><h3>How to Use the App</h3><p>Open the step-by-step MINDLINK tutorial at any time.</p></div>
+  </div>
+</section>
+
+<section id="checkin" class="screen">
+  <div class="top">
+    <button class="back" onclick="showScreen('home')">←</button>
+    <h1>Wellness Check-in</h1>
+    <button class="back" onclick="showScreen('settings')">⚙️</button>
+  </div>
+
+  <span class="member-label">Wellness Check-in</span>
+
+  <div class="card">
+    <h3>How are you feeling right now?</h3>
+    <p>Choose one emoji. The app will respond according to the student's feeling.</p>
+  </div>
+
+  <div class="mood-row">
+    <div class="mood" onclick="selectMood('angry', this)">😡<small>Angry</small></div>
+    <div class="mood" onclick="selectMood('sad', this)">😢<small>Sad</small></div>
+    <div class="mood selected" onclick="selectMood('okay', this)">😐<small>Okay</small></div>
+    <div class="mood" onclick="selectMood('good', this)">🙂<small>Good</small></div>
+    <div class="mood" onclick="selectMood('great', this)">😄<small>Great</small></div>
+  </div>
+
+  <div id="emotionResponse" class="response-box">
+    <h3>😐 Okay</h3>
+    <p class="small">It is okay to have an average day. Try a light task, a short break and simple breathing.</p>
+  </div>
+
+  <div class="card">
+    <h3>Stress Level</h3>
+    <p>Choose your current stress level.</p>
+
+    <div class="scale">
+      <button onclick="selectStress(1,this)">1</button>
+      <button onclick="selectStress(2,this)">2</button>
+      <button class="selected" onclick="selectStress(3,this)">3</button>
+      <button onclick="selectStress(4,this)">4</button>
+      <button onclick="selectStress(5,this)">5</button>
+    </div>
+
+    <p id="stressText" class="small">Moderate stress selected.</p>
+    <div class="progress">
+      <div id="stressBar" class="bar"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>What is causing this feeling?</h3>
+    <textarea id="reason" placeholder="Example: assignment deadline, exam stress, workload, personal issue..."></textarea>
+  </div>
+
+  <button class="btn green" onclick="submitCheckin()">Submit Check-in</button>
+  <button class="btn light" onclick="showScreen('home')">Back to Home</button>
+</section>
+
+<section id="resultInfo" class="screen">
+  <div class="top">
+    <button class="back" onclick="showScreen('home')">←</button>
+    <h1>Check-in Result</h1>
+    <button class="back" onclick="showScreen('settings')">⚙️</button>
+  </div>
+
+  <span class="member-label">Personalised Support Result</span>
+
+  <div class="card" style="text-align:center">
+    <div id="resultEmoji" class="result-icon">💚</div>
+    <h3 id="resultTitle">Your support result will appear here</h3>
+    <p id="resultSummary">Complete the wellness check-in to receive a personalised response.</p>
+  </div>
+
+  <div class="card">
+    <h3>Recommended Next Step</h3>
+    <p id="recommendation">Start by completing the wellness check-in.</p>
+  </div>
+
+  <div class="tip-card">
+    <h3>Safety reminder</h3>
+    <p>If a student feels unsafe or at risk, the app should guide them to trusted human support immediately.</p>
+  </div>
+
+  <div class="resource-action">
+    <button class="btn green" onclick="openAIFromCheckin()">🤖 Talk to AI Companion</button>
+    <button class="btn outline" onclick="openSupportFromCheckin()">🫶 Find Human Support</button>
+  </div>
+  <button class="btn light" onclick="showScreen('checkin')">Do Check-in Again</button>
+  <button class="btn light" onclick="showScreen('home')">Back to Home</button>
+</section>
+
+<section id="settings" class="screen">
+  <div class="top">
+    <button class="back" onclick="showScreen('home')">←</button>
+    <h1>Settings</h1>
+    <button class="back" onclick="showToast('Settings saved')">✓</button>
+  </div>
+
+  <span class="member-label">App Settings</span>
+
+  <div class="card">
+    <div class="setting-row">
+      <div>
+        <h3>Dark / Light Mode</h3>
+        <p>Change the app appearance.</p>
+      </div>
+      <div class="switch" onclick="toggleMode()">
+        <div class="knob"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Change App Colour</h3>
+    <p>Select a theme colour for MINDLINK.</p>
+    <div class="colours">
+      <div class="colour-dot blue" onclick="setTheme('#2478E8')"></div>
+      <div class="colour-dot purple" onclick="setTheme('#7C5CFF')"></div>
+      <div class="colour-dot teal" onclick="setTheme('#00A6A6')"></div>
+      <div class="colour-dot orange" onclick="setTheme('#F59E0B')"></div>
+      <div class="colour-dot pink" onclick="setTheme('#EC4899')"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Profile Settings</h3>
+    <p>Email: <span id="settingsEmail">Not logged in</span></p>
+    <p>Display name: <span id="settingsName">Student</span></p>
+  </div>
+
+  <div class="card">
+    <h3>Notifications</h3>
+    <p>Daily wellness reminder: On</p>
+    <p>Study break reminder: On</p>
+  </div>
+
+  <div class="card">
+    <h3>Privacy & Safety</h3>
+    <p>Mood check-ins are private. Support resources should guide students to trusted help when needed.</p>
+  </div>
+
+  <div class="card" onclick="logout()" style="cursor:pointer;border:2px solid #ef4444;">
+    <h3 style="color:#ef4444;">🚪 Log Out</h3>
+    <p>Return to the login screen.</p>
+  </div>
+
+  <div class="card">
+    <h3>Background Colour</h3>
+    <p>Choose your preferred app background.</p>
+    <div class="colours">
+      <div class="colour-dot" style="background:#F4FBFF" onclick="setBackground('#F4FBFF')"></div>
+      <div class="colour-dot" style="background:#FFF7E6" onclick="setBackground('#FFF7E6')"></div>
+      <div class="colour-dot" style="background:#F5F3FF" onclick="setBackground('#F5F3FF')"></div>
+      <div class="colour-dot" style="background:#EEFDF3" onclick="setBackground('#EEFDF3')"></div>
+      <div class="colour-dot" style="background:#FCE7F3" onclick="setBackground('#FCE7F3')"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>About MINDLINK</h3>
+    <p>Version 2.0 • Student Mental Wellness App • IMP Assignment 2</p>
+  </div>
+</section>
+
+<!-- ========================================================
+     MEMBER 2 - AI COMPANION (Chat + Smart Study Planner)
+     ======================================================== -->
+<section id="member2" class="screen" style="height:100%; padding-bottom:12px;">
+  <div class="top" style="flex-shrink:0;">
+    <button class="back" onclick="showScreen('home')">←</button>
+    <h1 id="m2Title">AI Companion</h1>
+    <button class="back" onclick="showScreen('settings')">⚙️</button>
+  </div>
+
+  <span class="member-label" style="flex-shrink:0;">AI Companion & Study Planner</span>
+
+  <!-- Mini Segmented Switcher Control -->
+  <div class="scale" style="flex-shrink:0; margin-bottom:12px;">
+    <button id="btnTabChat" class="selected" onclick="switchM2Tab('chat')">🤖 AI Chat</button>
+    <button id="btnTabPlanner" onclick="switchM2Tab('planner')">📅 AI Planner</button>
+  </div>
+
+  <!-- View 1: AI Chat Assistant System -->
+  <div id="m2ChatTab" style="display:flex; flex-direction:column; flex-grow:1; overflow:hidden;">
+    <div id="chatHistory" style="flex-grow:1; overflow-y:auto; background:var(--card); border:1px solid var(--line); border-radius:18px; padding:12px; margin-bottom:10px; display:flex; flex-direction:column; gap:10px;">
+      <div style="background:var(--primary2); padding:10px 14px; border-radius:14px 14px 14px 4px; align-self:flex-start; max-width:85%; font-size:13px; line-height:1.4;">
+        <strong>MindLink AI:</strong> Hello there! ❤️ I'm your safe space today. Whether you're feeling anxious about grades, entirely exhausted by deadlines, or just need someone to listen without judgment, I am right here with you. How is your heart holding up today?
+      </div>
+    </div>
+
+    <div id="m2Composer">
+    <!-- Quick-Pick Context Chips -->
+    <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:4px; flex-shrink:0; overscroll-behavior-x:contain;">
+      <button class="btn light" style="font-size:11px; padding:6px 12px; margin:0; width:auto; white-space:nowrap; border-radius:12px;" onclick="sendQuickPrompt('Give me a 5-minute stress relief routine')">⚡ Stress Relief</button>
+      <button class="btn light" style="font-size:11px; padding:6px 12px; margin:0; width:auto; white-space:nowrap; border-radius:12px;" onclick="sendQuickPrompt('Help me plan an upcoming assignment deadline')">📝 Plan Assignment</button>
+      <button class="btn light" style="font-size:11px; padding:6px 12px; margin:0; width:auto; white-space:nowrap; border-radius:12px;" onclick="sendQuickPrompt('I feel overwhelmed with study workload right now')">🤯 Overwhelmed</button>
+    </div>
+
+    <!-- Active Text input structure -->
+    <div style="display:flex; gap:8px; align-items:center; flex-shrink:0; margin-bottom:8px;">
+      <input id="chatInput" class="input" type="text" placeholder="Share what's on your mind..." aria-label="Message MindLink AI" autocomplete="off" style="margin-bottom:0; flex-grow:1; padding:12px;">
+      <button class="btn green" onclick="sendChatMessage()" aria-label="Send message" style="margin-top:0; width:auto; padding:12px 16px; border-radius:17px;">Send</button>
+    </div>
+    </div>
+  </div>
+
+  <!-- View 2: Workload Strategy AI Study Planner System -->
+  <div id="m2PlannerTab" style="display:none; flex-grow:1; overflow-y:auto;">
+    <div class="card" style="border-top: 4px solid var(--primary);">
+      <h3>📅 AI Smart Study Assistant</h3>
+      <p>Input your academic tasks below. Our engine will curate a beautifully paced schedule designed to mitigate academic burnout.</p>
+      <div style="margin-top:14px;">
+        <input id="plannerTask" class="input" type="text" placeholder="Task Name (e.g., Chemistry Report, History Essay)" style="margin-bottom:8px; padding:10px;">
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <input id="plannerDays" class="input" type="number" placeholder="Days left" style="margin-bottom:0; padding:10px; width:50%;">
+          <select id="plannerDifficulty" class="input" style="margin-bottom:0; padding:10px; width:50%;">
+            <option value="Low Load">Low Complexity</option>
+            <option value="Medium Load" selected>Medium Complexity</option>
+            <option value="High Load">High Complexity</option>
+          </select>
+        </div>
+        <button class="btn green" onclick="generateAIPlan()" style="margin-top:4px; box-shadow: 0 4px 12px rgba(55,198,134,0.25);">✨ Generate Visual Strategy</button>
+      </div>
+    </div>
+
+    <div class="card" style="background: transparent; border: none; box-shadow: none; padding: 0;">
+      <h3 style="padding-left: 4px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 4px;">Generated Roadmap</h3>
+      <div id="aiPlanOutput">
+        <div class="card" style="text-align: center; padding: 24px; border-style: dashed;">
+          <span style="font-size: 32px;">🗺️</span>
+          <p class="small" style="margin-top: 8px;">Enter your task configurations above to build your custom milestone dashboard.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn light" onclick="showScreen('home')" style="flex-shrink:0; margin-top:auto;">Back to Home</button>
+</section>
+
+<!-- ========================================================
+     MEMBER 3 - ANALYTICS DASHBOARD
+     (Mood / Stress / Workload / Well-being tabs)
+     ======================================================== -->
+<section id="member3" class="screen">
+  <div class="top">
+    <button class="back" onclick="showScreen('home')">←</button>
+    <h1>Analytics Dashboard</h1>
+    <button class="back" onclick="showScreen('settings')">⚙️</button>
+  </div>
+
+  <span class="member-label">Well-being Insights & Tracking</span>
+
+  <div class="db-tabs">
+    <div id="tabMood" class="db-tab active" onclick="switchDashboardTab('mood')">Mood Insights</div>
+    <div id="tabStress" class="db-tab" onclick="switchDashboardTab('stress')">Stress Tracking</div>
+    <div id="tabWorkload" class="db-tab" onclick="switchDashboardTab('workload')">Workload</div>
+    <div id="tabSummary" class="db-tab" onclick="switchDashboardTab('summary')">Well-being</div>
+  </div>
+
+  <div id="moodSubDashboard">
+    <div class="stat-summary">
+      <div class="stat-mini">
+        <h4>Dominant Mood</h4>
+        <div id="m3DomMood">😐 Okay</div>
+      </div>
+      <div class="stat-mini">
+        <h4>STREAKS</h4>
+        <div id="m3TotalChecks" style="display: flex; align-items: center; justify-content: center; gap: 4px;">5 🔥</div>
+        <p class="small" style="margin:2px 0 0; font-size:11px; color:var(--muted);">Days Check-in</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0 0 2px; font-size:15px;">🐾 Companion Well-being Pet</h3>
+        <button onclick="togglePetCustomizer()" style="background:none; border:none; font-size:22px; cursor:pointer;" title="Customize Pet">⭐</button>
+      </div>
+      <p class="small" style="margin-bottom:8px;">Interact with your wellness companion</p>
+
+      <div class="pet-box-display">
+        <div id="virtualPetAvatarBody" class="snowman-container">
+          <div class="snowman-head" id="petHeadColor">
+             <div class="snowman-hair">|||</div>
+             <div class="pet-eye left"></div>
+             <div class="pet-eye right"></div>
+             <div class="pet-mouth"></div>
+             <div id="petHeadAccessoryOverlay"></div>
+          </div>
+          <div class="snowman-body" id="petBodyColor">
+             <div id="petPatternClothingOverlay" class="clothing-layer"></div>
+             <div class="snowman-arms">
+                <div class="snowman-arm arm-left"><div class="snowman-hand"></div></div>
+                <div class="snowman-arm arm-right"><div class="snowman-hand"></div></div>
+             </div>
+             <div id="petNeckAccessoryOverlay"></div>
+             <div class="snowman-legs">
+                <div class="snowman-leg"></div>
+                <div class="snowman-leg"></div>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:12px;">
+        <button class="btn light" style="margin:0; padding:6px 0; font-size:11px;" onclick="triggerPetEmote('wave')">Wave 👋</button>
+        <button class="btn light" style="margin:0; padding:6px 0; font-size:11px;" onclick="triggerPetEmote('spin')">Spin 🌀</button>
+        <button class="btn light" style="margin:0; padding:6px 0; font-size:11px;" onclick="triggerPetEmote('jump')">Jump 🚀</button>
+      </div>
+
+      <div id="petCustomizePanel" style="display:none; margin-top:14px; border-top:1px solid var(--line); padding-top:10px;">
+        <h4 style="margin:4px 0 4px; font-size:12px; text-transform:uppercase; color:var(--muted);">Pet Wardrobe & Stylist</h4>
+
+        <div class="wardrobe-tabs-row">
+          <span class="wardrobe-pill" style="font-weight:bold;">Patterns:</span>
+          <span class="wardrobe-pill" onclick="applyPetStyle('pattern', 'none')">None</span>
+          <span class="wardrobe-pill" onclick="applyPetStyle('pattern', 'striped')">Striped</span>
+          <span class="wardrobe-pill" onclick="applyPetStyle('pattern', 'dots')">Polka Dots</span>
+          <span class="wardrobe-pill" onclick="applyPetStyle('pattern', 'solid')">Overcoat</span>
+        </div>
+
+        <div class="wardrobe-tabs-row">
+          <span class="wardrobe-pill" style="font-weight:bold;">Accessories:</span>
+          <span class="wardrobe-pill" onclick="applyPetStyle('accessory', 'none')">None</span>
+          <span class="wardrobe-pill" onclick="applyPetStyle('accessory', 'hat')">Hat 🎩</span>
+          <span class="wardrobe-pill" onclick="applyPetStyle('accessory', 'sunglasses')">Shades 😎</span>
+          <span class="wardrobe-pill" onclick="applyPetStyle('accessory', 'spectacles')">Glasses 🤓</span>
+          <span class="wardrobe-pill" onclick="applyPetStyle('accessory', 'necktie')">Tie 👔</span>
+          <span class="wardrobe-pill" onclick="applyPetStyle('accessory', 'scarf')">Scarf 🧣</span>
+        </div>
+
+        <div class="wardrobe-tabs-row">
+          <span class="wardrobe-pill" style="font-weight:bold;">Colours:</span>
+          <span class="wardrobe-pill" style="color:#EC4899;" onclick="applyPetStyle('color', '#FFD1E3')">Pink</span>
+          <span class="wardrobe-pill" style="color:#2478E8;" onclick="applyPetStyle('color', '#D1E6FF')">Blue</span>
+          <span class="wardrobe-pill" style="color:#EF4444;" onclick="applyPetStyle('color', '#FFD1D1')">Red</span>
+          <span class="wardrobe-pill" style="color:#10B981;" onclick="applyPetStyle('color', '#D1FFEB')">Green</span>
+          <span class="wardrobe-pill" style="color:#333;" onclick="applyPetStyle('color', 'white')">White</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Mood Distribution (7 days)</h3>
+      <div id="moodChartContainer"></div>
+    </div>
+
+    <div class="card">
+      <h3>Recent Check-in Timeline</h3>
+      <div id="moodHistoryList"></div>
+    </div>
+  </div>
+
+  <div id="stressSubDashboard" style="display:none;">
+    <div class="stat-summary">
+      <div class="stat-mini">
+        <h4>Average Stress</h4>
+        <div id="m3AvgStress">3.2 / 5</div>
+      </div>
+      <div class="stat-mini">
+        <h4>Current Status</h4>
+        <div id="m3StressStatus" style="color:var(--primary)">Moderate</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Stress Level Trend (7 Days)</h3>
+      <p style="margin-bottom:4px">Tap any day to inspect details or choose the high-precision peak marker node directly on the dot:</p>
+
+      <div class="trend-container">
+        <div class="svg-aspect-wrapper">
+          <svg class="trend-svg" id="trendLineSvg" viewBox="0 0 350 100">
+            <line x1="15" y1="20" x2="335" y2="20" stroke="var(--line)" stroke-dasharray="3" stroke-width="1" />
+            <line x1="15" y1="50" x2="335" y2="50" stroke="var(--line)" stroke-dasharray="3" stroke-width="1" />
+            <line x1="15" y1="80" x2="335" y2="80" stroke="var(--line)" stroke-dasharray="3" stroke-width="1" />
+            <polyline id="graphPolyline" fill="none" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="" />
+            <g id="svgDotVerticesGroup"></g>
+          </svg>
+          <button id="peakStressElementMarker" class="peak-stress-marker" style="display:none;"></button>
+        </div>
+
+        <div class="trend-days-row">
+          <button class="trend-day-btn" id="btnDay0" onclick="selectTrendDay(0)">M</button>
+          <button class="trend-day-btn" id="btnDay1" onclick="selectTrendDay(1)">T</button>
+          <button class="trend-day-btn" id="btnDay2" onclick="selectTrendDay(2)">W</button>
+          <button class="trend-day-btn" id="btnDay3" onclick="selectTrendDay(3)">T</button>
+          <button class="trend-day-btn" id="btnDay4" onclick="selectTrendDay(4)">F</button>
+          <button class="trend-day-btn" id="btnDay5" onclick="selectTrendDay(5)">S</button>
+          <button class="trend-day-btn" id="btnDay6" onclick="selectTrendDay(6)">S</button>
+        </div>
+      </div>
+
+      <div class="log-detail-box" id="selectedDayLogBox">
+        <h4 style="margin:0 0 4px; font-size:13px;" id="detailDayName">Select day</h4>
+        <p class="small" id="detailLogText" style="margin:0;">No log content loaded.</p>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <h3>⚠️ Key Stress Triggers Observed</h3>
+      <p id="m3StressInsights">Common factors listed: assignment deadline, exam load. Keep scheduling short tactical study breaks to preserve mental bandwidth.</p>
+    </div>
+  </div>
+
+  <div id="workloadSubDashboard" style="display:none;">
+    <div class="stat-summary">
+      <div class="stat-mini">
+        <h4>PENDING TASKS</h4>
+        <div id="pendingTasksCountDiv" style="font-size: 20px; font-weight: 900;">2/4</div>
+        <p id="pendingTasksStatusLabel" style="font-size:11px; font-weight:bold; margin:3px 0 0; color:var(--green);">Good Pace</p>
+      </div>
+      <div class="stat-mini">
+        <h4>Intensity Level</h4>
+        <div style="color:#EF4444;">High 🔥</div>
+      </div>
+    </div>
+
+    <div class="card" style="background:linear-gradient(135deg, var(--card), var(--primary2)); border-left:4px solid var(--primary);">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0;">⏳ Study Hours</h3>
+      </div>
+      <p style="margin:6px 0 6px; color:var(--text); font-size:15px; font-weight:800;">
+        Total Studied: <span id="coverTotalHoursSpan">00h 00m 00s</span>
+      </p>
+      <div style="display:flex; gap:8px;">
+        <button class="btn green" style="margin:0; font-size:12px; padding:10px;" onclick="openStudyTimerModal()">Open Desk</button>
+        <button class="btn light" style="margin:0; font-size:12px; padding:10px;" onclick="openDailyStudyModal()">Daily Total Study Records</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🎯 Assignment Progress</h3>
+      <div class="circular-progress-box">
+        <div class="circular-svg-wrap">
+          <svg width="72" height="72" viewBox="0 0 72 72">
+            <circle class="circle-bg-ring" cx="36" cy="36" r="32" />
+            <circle id="circularProgressRingElement" class="circle-fill-ring" cx="36" cy="36" r="32" stroke-dasharray="201.06" stroke-dashoffset="201.06" />
+          </svg>
+        </div>
+        <div>
+          <div id="circularPercentText" style="font-size:20px; font-weight:900; color:var(--text);">0% Finished</div>
+          <div id="circularPendingItemsText" class="small" style="color:var(--muted); margin-top:2px;">0 items pending</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3 style="margin:0; font-size:16px;">Current Tasks Status</h3>
+        <button class="back" style="margin-left:auto; width:30px; height:30px; border-radius:50%; background:var(--primary2); font-size:16px; display:grid; place-items:center;" onclick="openAddTaskModal()" title="Add Custom Item">+</button>
+      </div>
+      <p class="small" style="margin-bottom:8px;"><em>* Press and hold a task to delete it.</em></p>
+      <div id="workloadLiveChecklistGroup"></div>
+    </div>
+
+    <div id="m3TaskRecBoxCard" class="tip-card" style="background: linear-gradient(135deg, #FEF3C7, var(--primary2)); border-color: #F59E0B;">
+      <h3>💡 Task Recommendation</h3>
+      <p id="m3TaskRecParagraphText" style="color: #D97706; margin:0; font-size:13px; line-height:1.45;">Your mid-week task volume is peaking. Consider pacing your Calculus study sessions to prevent subsequent stress compounding on Tuesday.</p>
+    </div>
+  </div>
+
+  <div id="summarySubDashboard" style="display:none;">
+    <div class="card" style="background:linear-gradient(135deg, var(--green2), var(--card)); text-align:center;">
+      <h3 style="margin:0 0 4px; font-size:16px; color:#167044;">✨ Mental Health Summary</h3>
+      <p class="small">Overall physical and emotional resilience patterns calculated across historical student logs look optimally stable this cycle.</p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom: 6px;">🌬️ Breathing Exercise</h3>
+      <p class="small">Sync your breath: Inhale as it expands, exhale as it shrinks.</p>
+      <div class="breathe-container">
+         <div class="breathe-circle">
+            Breathe
+         </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Clickable Hydration Panel -->
+      <div class="card feature" onclick="openHydrationModal()">
+        <div class="icon" style="background:#E6FAF0; color:#10B981;">💧</div>
+        <h3 style="font-size:15px;">Hydration</h3>
+        <p id="hydrationCoverText">Log Intake</p>
+      </div>
+      <!-- Clickable Sleep Quality Panel -->
+      <div class="card feature" onclick="openSleepModal()">
+        <div class="icon" style="background:#FCE7F3; color:#EC4899;">💤</div>
+        <h3 style="font-size:15px;">Sleep Quality</h3>
+        <p id="sleepCoverText">Log Sleep</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom: 6px;">📝 Daily Gratitude</h3>
+      <p class="small">What are you thankful for today?</p>
+      <input id="gratitudeInput" type="text" class="input" placeholder="I am grateful for..." style="margin-top:10px;">
+      <button class="btn light" onclick="saveGratitude()">Save Entry</button>
+      <p id="gratitudeFeedbackText" class="small" style="margin-top:8px; display:none;"></p>
+    </div>
+  </div>
+
+  <button class="btn light" style="margin-top:8px;" onclick="showScreen('home')">Back to Home</button>
+</section>
+
+<!-- ========================================================
+     MEMBER 4 - PEER SUPPORT & RESOURCES
+     ======================================================== -->
+<section id="member4" class="screen">
+  <div class="top">
+    <button class="back" onclick="showScreen('home')">←</button>
+    <h1>Peer Support</h1>
+    <button class="back" onclick="showScreen('settings')">⚙️</button>
+  </div>
+
+  <span class="member-label">Peer Support & Help Resources</span>
+
+  <div class="card priority-support">
+    <span class="priority-badge">LOW MOOD & DEPRESSION SUPPORT</span>
+    <h3>Small steps that may help</h3>
+    <p style="margin-bottom:8px">Depression is not a personal failure, and an app cannot diagnose or cure it. These steps can support recovery while you seek human or professional help.</p>
+    <div class="depression-step"><div>1️⃣</div><div><strong>Tell one trusted person</strong><span>Let a friend, family member, counsellor or teacher know that you have been struggling.</span></div></div>
+    <div class="depression-step"><div>2️⃣</div><div><strong>Make the next step very small</strong><span>Try drinking water, showering, eating something simple, opening the curtains or taking a five-minute walk.</span></div></div>
+    <div class="depression-step"><div>3️⃣</div><div><strong>Keep a basic routine</strong><span>A regular wake time, meals, gentle movement and sleep routine can give your day more structure.</span></div></div>
+    <div class="depression-step"><div>4️⃣</div><div><strong>Reduce isolation</strong><span>Stay near supportive people, join a safe peer group or use the support chat in this app.</span></div></div>
+    <div class="depression-step"><div>5️⃣</div><div><strong>Seek professional support</strong><span>Speak with a counsellor, doctor or mental-health professional, especially when symptoms persist or affect daily life.</span></div></div>
+    <button class="btn green" onclick="switchMember4Tab('resources', document.querySelector('.member4-tabs button'))">Find Support Resources</button>
+    <p class="small" style="margin-top:10px"><strong>Urgent safety:</strong> If you might hurt yourself or cannot stay safe, contact local emergency services now and stay with a trusted person.</p>
+    <div class="card safety-note" style="margin-top:12px;margin-bottom:0">
+      <h3>Important</h3>
+      <p>MINDLINK can offer supportive steps, but it cannot diagnose, treat or cure depression. A counsellor, doctor or qualified mental-health professional can provide proper assessment and care.</p>
+    </div>
+  </div>
+
+  <div class="hero">
+    <h2>🫶 Support Hub</h2>
+    <p>Join a support group, talk to a wellness ambassador, or find the right resource based on what you need.</p>
+  </div>
+
+  <div class="member4-tabs">
+    <button id="tabResources" class="active" onclick="showMember4Tab('resources')">📚 Resources</button>
+    <button id="tabPeer" onclick="showMember4Tab('peer')">💬 Groups</button>
+    <button id="tabProfile" onclick="showMember4Tab('profile')">👤 Support</button>
+  </div>
+
+  <div id="member4Resources" class="member4-view">
+    <div class="card">
+      <h3>Search Support Resources</h3>
+      <p>Find help quickly using simple keywords.</p>
+      <input id="resourceSearch" class="input" type="text" placeholder="Search: stress, study, counsellor, friend..." oninput="searchResources()">
+      <p id="resourceResult" class="small">Try searching for stress, study, counsellor, friend or urgent.</p>
+    </div>
+
+    <div class="card support-list">
+      <h3>Recommended Support</h3>
+      <p>🏫 <strong>School Counsellor</strong><br><span class="small">For private emotional support, stress, friendship issues or school pressure.</span></p>
+      <div class="resource-action">
+        <button class="btn light" onclick="openSupportChat('stress','School Counsellor')">Talk</button>
+        <button class="btn outline" onclick="saveResource('School Counsellor')">Save</button>
+      </div>
+      <p>👩‍🏫 <strong>Trusted Teacher / Mentor</strong><br><span class="small">For workload concerns, deadlines, class problems or academic guidance.</span></p>
+      <div class="resource-action">
+        <button class="btn light" onclick="openSupportChat('study','Trusted Teacher')">Talk</button>
+        <button class="btn outline" onclick="saveResource('Trusted Teacher')">Save</button>
+      </div>
+      <p>🤝 <strong>Peer Listener</strong><br><span class="small">For friendship problems, loneliness, peer encouragement or needing someone to listen.</span></p>
+      <div class="resource-action">
+        <button class="btn light" onclick="openSupportChat('friends','Peer Listener')">Talk</button>
+        <button class="btn outline" onclick="saveResource('Peer Listener')">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="member4Peer" class="member4-view" style="display:none">
+    <div class="card">
+      <h3>Peer Support Community</h3>
+      <p>Choose a safe community space based on what you are facing. Tap a group to view and join it.</p>
+
+      <div class="group-card" onclick="openGroup('Study Stress Circle')">
+        <h4>📚 Study Stress Circle</h4>
+        <p>For assignment deadlines, exams, workload planning and motivation.</p>
+        <div class="group-meta"><span>24 members online</span><button class="btn light" style="margin:0;padding:9px;width:auto">Open</button></div>
+      </div>
+
+      <div class="group-card" onclick="openGroup('Calm Corner')">
+        <h4>🌿 Calm Corner</h4>
+        <p>For breathing breaks, positive reminders and calming check-ins.</p>
+        <div class="group-meta"><span>18 members online</span><button class="btn light" style="margin:0;padding:9px;width:auto">Open</button></div>
+      </div>
+
+      <div class="group-card" onclick="openGroup('Friendship Support')">
+        <h4>🤝 Friendship Support</h4>
+        <p>For friendship conflicts, feeling left out or needing peer advice.</p>
+        <div class="group-meta"><span>12 members online</span><button class="btn light" style="margin:0;padding:9px;width:auto">Open</button></div>
+      </div>
+    </div>
+
+    <div id="groupPage" class="card" style="display:none">
+      <h3 id="groupTitle">Group Name</h3>
+      <p id="groupDesc" class="small">Group details will appear here.</p>
+      <button id="joinGroupBtn" class="btn green" onclick="joinSelectedGroup()">Join This Group</button>
+      <div id="groupChat" class="chat-box" style="display:none">
+        <p class="small"><strong>Live Community Chat</strong></p>
+        <div id="groupChatHistory"></div>
+        <textarea id="groupPost" placeholder="Type a short message to the group..."></textarea>
+        <button class="btn light" onclick="sendGroupPost()">Post Message</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="member4Profile" class="member4-view" style="display:none">
+    <div class="card">
+      <h3>Support Profile</h3>
+      <p>Choose what you need help with, then start a support chat.</p>
+      <div class="scale">
+        <button class="selected" onclick="selectSupportNeed('study', this)">Study</button>
+        <button onclick="selectSupportNeed('stress', this)">Stress</button>
+        <button onclick="selectSupportNeed('friends', this)">Friends</button>
+      </div>
+      <p id="supportNeedText" class="small">Study support selected. Recommended: Study Stress Circle and trusted teacher support.</p>
+      <button class="btn green" onclick="startSelectedSupportChat()">Talk to Suggested Support</button>
+    </div>
+
+    <div class="card">
+      <h3>Wellness Ambassadors</h3>
+      <p class="small">Tap an ambassador to open a chat-style support page.</p>
+      <div class="group-card" onclick="openSupportChat('study','Mei - Study Ambassador')"><h4>🌟 Mei</h4><p>Helps with study stress and assignment planning.</p></div>
+      <div class="group-card" onclick="openSupportChat('stress','Ryan - Wellness Ambassador')"><h4>🌟 Ryan</h4><p>Helps with calming down and coping strategies.</p></div>
+      <div class="group-card" onclick="openSupportChat('friends','Alya - Peer Ambassador')"><h4>🌟 Alya</h4><p>Helps with friendship issues and peer encouragement.</p></div>
+    </div>
+
+    <div id="supportChatPanel" class="card" style="display:none">
+      <h3 id="supportChatTitle">Support Chat</h3>
+      <div class="chat-box">
+        <div id="supportGreeting" class="chat-msg">Hi, I am here to listen. What would you like support with?</div>
+        <div id="supportChatHistory"></div>
+      </div>
+      <div class="quick-row">
+        <button onclick="quickSupportMessage('I feel stressed about schoolwork.')">Study stress</button>
+        <button onclick="quickSupportMessage('I feel overwhelmed and need to calm down.')">Stress</button>
+        <button onclick="quickSupportMessage('I am having friendship problems.')">Friends</button>
+      </div>
+      <textarea id="supportMessage" placeholder="Type what you want to say..."></textarea>
+      <button class="btn green" onclick="sendSupportMessage()">Send Message</button>
+    </div>
+  </div>
+
+  <button class="btn light" onclick="showScreen('home')">Back to Home</button>
+</section>
+
+</div>
+
+<script>
+/* ========================================================
+   SHARED STATE (used across Member 1, 2, 3 and 4 features)
+   ======================================================== */
+let currentMood = "okay";
+let currentStress = 3;
+let currentEmail = "";
+let latestCheckinReason = "";
+let pendingPlannerTask = null;
+
+// Member 3 - dynamic workload checklist
+let globalTaskItems = [
+  { id: 1, title: "Calculus Midterm Review", priority: "High Priority", meta: "Due: In 2 Days • Estimated effort: 5 hours", completed: true },
+  { id: 2, title: "Software Engineering Report", priority: "High Priority", meta: "Due: Friday • Team integration summary", completed: true },
+  { id: 3, title: "UX/UI Prototype Iterations", priority: "Medium Priority", meta: "Due: Sunday • Polish layout interactions", completed: false }
+];
+
+// Member 3 - Study Session Timer Core Global Fields
+let stopwatchIntervalId = null;
+let stopwatchTotalSeconds = 0;
+
+// Member 3 - Hardcoded distributed weights representing recorded Study hours metrics for Pie Chart
+const dailyStudyDataMinutes = {
+  "Monday": 90, "Tuesday": 120, "Wednesday": 240, "Thursday": 60, "Friday": 105, "Saturday": 45, "Sunday": 80
+};
+
+// Member 3 - weekly mood/stress trend log
+let weeklyTrendData = [
+  { day: "Monday", abbrev: "M", mood: "good", stress: 2, reason: "Had an active study session", hasLog: true },
+  { day: "Tuesday", abbrev: "T", mood: "okay", stress: 4, reason: "Exam preparation ongoing", hasLog: true },
+  { day: "Wednesday", abbrev: "W", mood: "sad", stress: 3, reason: "Too many deadlines close together", hasLog: true },
+  { day: "Thursday", abbrev: "T", mood: "great", stress: 1, reason: "Finished assignments early", hasLog: true },
+  { day: "Friday", abbrev: "F", mood: "okay", stress: 3, reason: "Group brainstorming review", hasLog: true },
+  { day: "Saturday", abbrev: "S", mood: "good", stress: 2, reason: "Rested well over weekend", hasLog: true },
+  { day: "Sunday", abbrev: "S", mood: "okay", stress: 2, reason: "Weekly project setup check", hasLog: true }
+];
+
+// Member 3 - long-press-to-delete timer handle
+let taskPressTimer;
+
+// Member 3 - hydration goal (oz)
+let hydroGoalOz = 0;
+
+// Member 4 - peer support state
+let selectedGroup = "";
+let selectedSupportNeed = "study";
+let selectedSupportPerson = "Trusted Teacher";
+
+/* ========================================================
+   MEMBER 1 - CORE APP FUNCTIONS
+   ======================================================== */
+
+const tutorialSteps = [
+  {icon:'👋', title:'Welcome to MINDLINK', text:'MINDLINK brings your main wellness tools into one place. The most urgent support option is always placed at the top of the Home screen.'},
+  {icon:'🆘', title:'Get Help Quickly', text:'Tap “Open Support Now” when you need a trusted person, peer support or help resources. In an immediate safety emergency, contact local emergency services.'},
+  {icon:'🙂', title:'Complete a Wellness Check-in', text:'Choose your mood, rate your stress and briefly describe what is affecting you. MINDLINK will suggest a practical next step.'},
+  {icon:'🤖', title:'Use the AI Companion', text:'Talk through what is on your mind or use the Smart Study Planner to break academic work into manageable steps.'},
+  {icon:'📊', title:'Track Your Well-being', text:'Open Well-being Insights to review mood and stress patterns, workload, study time, sleep, hydration and daily habits.'},
+  {icon:'🫶', title:'Connect with Support', text:'Open Peer Support & Help to find communities, ambassador chat, depression-support steps and other resources.'}
+];
+let tutorialIndex = 0;
+function renderTutorial(){
+  const step=tutorialSteps[tutorialIndex];
+  document.getElementById('tutorialVisual').textContent=step.icon;
+  document.getElementById('tutorialTitle').textContent=step.title;
+  document.getElementById('tutorialText').textContent=step.text;
+  document.getElementById('tutorialProgress').innerHTML=tutorialSteps.map((_,i)=>`<div class="tutorial-dot ${i<=tutorialIndex?'active':''}"></div>`).join('');
+  document.getElementById('tutorialBack').disabled=tutorialIndex===0;
+  document.getElementById('tutorialNext').textContent=tutorialIndex===tutorialSteps.length-1?'Finish':'Next';
+}
+function openTutorial(){tutorialIndex=0;renderTutorial();document.getElementById('tutorialOverlay').classList.add('show');}
+function closeTutorial(){document.getElementById('tutorialOverlay').classList.remove('show');localStorage.setItem('mindlinkTutorialSeen','yes');}
+function tutorialNext(){if(tutorialIndex<tutorialSteps.length-1){tutorialIndex++;renderTutorial();}else{closeTutorial();showToast('Tutorial completed');}}
+function tutorialPrevious(){if(tutorialIndex>0){tutorialIndex--;renderTutorial();}}
+
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(screen => screen.classList.remove("active"));
+  const target = document.getElementById(id);
+  if(!target){ showToast("This section is unavailable."); return; }
+  target.classList.add("active");
+  target.scrollTop = 0;
+
+  const nav=document.getElementById("appBottomNav");
+  const hideNav=id==="login" || id==="resultInfo" || id==="settings";
+  nav?.classList.toggle("show",!hideNav);
+  nav?.querySelectorAll(".nav-btn").forEach(btn=>{
+    const active=btn.dataset.screen===id;
+    btn.classList.toggle("active",active);
+    btn.setAttribute("aria-current",active?"page":"false");
+  });
+
+  const heading=target.querySelector("h1,h2");
+  if(heading){ heading.setAttribute("tabindex","-1"); requestAnimationFrame(()=>heading.focus({preventScroll:true})); }
+
+  if(id === 'member2'){
+    switchM2Tab('chat');
+    requestAnimationFrame(() => {
+      const history = document.getElementById('chatHistory');
+      history.scrollTop = history.scrollHeight;
+    });
+  }
+  if(id === 'member3'){
+    renderMember3Dashboards();
+  }
+  if(id === 'member4'){
+    showMember4Tab('resources');
+  }
+}
+
+function getNameFromEmail(email){
+  return email.split("@")[0] || "Student";
+}
+
+function login(){
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+
+  if(email === "" || password === ""){
+    showToast("Please enter email address and password.");
+    return;
+  }
+
+  if(!email.includes("@")){
+    showToast("Please enter a valid email address.");
+    return;
+  }
+
+  currentEmail = email;
+  const displayName = getNameFromEmail(email);
+
+  document.getElementById("welcomeName").textContent = displayName;
+  document.getElementById("avatar").textContent = displayName.charAt(0);
+  document.getElementById("settingsEmail").textContent = email;
+  document.getElementById("settingsName").textContent = displayName;
+
+  showScreen("home");
+  showToast("Login successful. Welcome, " + displayName + ".");
+}
+
+function demoLogin(){
+  document.getElementById("email").value = "ray@gmail.com";
+  document.getElementById("password").value = "password";
+  login();
+}
+
+function toggleMode(){
+  document.body.classList.toggle("dark");
+  if(document.body.classList.contains("dark")){
+    showToast("Dark mode enabled.");
+  }else{
+    showToast("Light mode enabled.");
+  }
+}
+
+function setTheme(colour){
+  document.documentElement.style.setProperty("--primary", colour);
+  document.documentElement.style.setProperty("--primary2", colour + "22");
+  showToast("App colour updated.");
+}
+
+function showToast(message){
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 1800);
+}
+
+function selectMood(mood, element){
+  currentMood = mood;
+
+  document.querySelectorAll(".mood").forEach(item => item.classList.remove("selected"));
+  element.classList.add("selected");
+
+  const responses = {
+    angry:{
+      title:"😡 Angry",
+      text:"You may be feeling frustrated. Pause for a moment, breathe slowly, and avoid reacting immediately."
+    },
+    sad:{
+      title:"😢 Sad",
+      text:"It is okay to feel sad. Try journaling, listening to calming music, or speaking to someone you trust."
+    },
+    okay:{
+      title:"😐 Okay",
+      text:"It is okay to have an average day. Try a light task, a short break and simple breathing."
+    },
+    good:{
+      title:"🙂 Good",
+      text:"You are doing well today. Keep the positive rhythm and complete one priority task."
+    },
+    great:{
+      title:"😄 Great",
+      text:"Amazing! Use this energy wisely, but remember to rest and not overload yourself."
+    }
+  };
+
+  document.getElementById("emotionResponse").innerHTML =
+    `<h3>${responses[mood].title}</h3><p class="small">${responses[mood].text}</p>`;
+}
+
+function selectStress(level, element){
+  currentStress = level;
+
+  document.querySelectorAll("#checkin .scale button").forEach(button => button.classList.remove("selected"));
+  element.classList.add("selected");
+
+  const stressTexts = {
+    1:"Very low stress selected. You seem calm today.",
+    2:"Low stress selected. Keep your workload balanced.",
+    3:"Moderate stress selected. Take short breaks and plan one task at a time.",
+    4:"High stress selected. Try reducing your workload and speak to someone if needed.",
+    5:"Very high stress selected. Please use support resources or contact a trusted person immediately."
+  };
+
+  document.getElementById("stressText").textContent = stressTexts[level];
+  document.getElementById("stressBar").style.width = (level * 20) + "%";
+}
+
+function submitCheckin(){
+  const reason = document.getElementById("reason").value.trim();
+
+  const moodData = {
+    angry:{emoji:"😡", label:"angry"},
+    sad:{emoji:"😢", label:"sad"},
+    okay:{emoji:"😐", label:"okay"},
+    good:{emoji:"🙂", label:"good"},
+    great:{emoji:"😄", label:"great"}
+  };
+
+  document.getElementById("resultEmoji").textContent = moodData[currentMood].emoji;
+  document.getElementById("resultTitle").textContent =
+    "You are feeling " + moodData[currentMood].label + " today";
+
+  let summary = "Your stress level is " + currentStress + " out of 5.";
+
+  if(reason !== ""){
+    summary += " You shared that this may be caused by: " + reason + ".";
+  }
+
+  document.getElementById("resultSummary").textContent = summary;
+
+  let recommendation = "Take a short break, drink water, and complete one small task first.";
+
+  if(currentStress >= 4){
+    recommendation = "Your stress level is high. MINDLINK recommends slowing down, reducing workload pressure, and speaking to someone you trust.";
+  }
+
+  if(currentMood === "sad"){
+    recommendation = "You may benefit from gentle support. Try journaling, resting, or talking to a trusted friend, teacher, or counsellor.";
+  }
+
+  if(currentMood === "angry"){
+    recommendation = "Take a pause before responding to anything. Try breathing slowly and stepping away from the stressful situation.";
+  }
+
+  if(currentMood === "good" || currentMood === "great"){
+    recommendation = "You are doing well. Continue with one important study task, but remember to rest too.";
+  }
+
+  document.getElementById("recommendation").textContent = recommendation;
+
+  latestCheckinReason = reason;
+  syncCheckinToAnalytics(currentMood, currentStress, reason);
+
+  showScreen("resultInfo");
+  showToast("Check-in saved and analytics updated.");
+}
+
+function syncCheckinToAnalytics(mood, stress, reason){
+  const now = new Date();
+  const mondayIndex = (now.getDay() + 6) % 7;
+  const dayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const abbrevs = ["M","T","W","T","F","S","S"];
+  weeklyTrendData[mondayIndex] = {
+    day: dayNames[mondayIndex],
+    abbrev: abbrevs[mondayIndex],
+    mood,
+    stress,
+    reason: reason || "Wellness check-in completed",
+    hasLog: true
+  };
+}
+
+function openAIFromCheckin(){
+  showScreen('member2');
+  const moodWords = {angry:'angry and frustrated', sad:'sad', okay:'just okay', good:'good', great:'great'};
+  const reasonText = latestCheckinReason ? ` because of ${latestCheckinReason}` : '';
+  document.getElementById('chatInput').value = `I feel ${moodWords[currentMood]} with stress level ${currentStress}/5${reasonText}. Please help me with a manageable next step.`;
+  document.getElementById('chatInput').focus();
+}
+
+function openSupportFromCheckin(){
+  showScreen('member4');
+  showMember4Tab('profile');
+  const need = currentStress >= 4 ? 'stress' : (latestCheckinReason.toLowerCase().match(/friend|peer|classmate/) ? 'friends' : 'study');
+  selectedSupportNeed = need;
+  const buttons = document.querySelectorAll('#member4Profile .scale button');
+  buttons.forEach(button => button.classList.remove('selected'));
+  const index = need === 'study' ? 0 : need === 'stress' ? 1 : 2;
+  if(buttons[index]) buttons[index].classList.add('selected');
+  const labels = {
+    study:'Based on your check-in, study support may help. Choose a trusted person below.',
+    stress:'Your check-in shows higher stress. A counsellor, trusted teacher or wellness ambassador is recommended.',
+    friends:'Your check-in may involve friendship concerns. A peer ambassador or trusted teacher may help.'
+  };
+  document.getElementById('supportNeedText').textContent = labels[need];
+}
+
+function logout(){
+ if(confirm("Are you sure you want to log out?")){
+   document.getElementById("email").value="";
+   document.getElementById("password").value="";
+   document.getElementById("welcomeName").textContent="Student";
+   document.getElementById("avatar").textContent="S";
+   document.getElementById("settingsEmail").textContent="Not logged in";
+   document.getElementById("settingsName").textContent="Student";
+   document.getElementById("reason").value="";
+   currentMood="okay";
+   currentStress=3;
+   latestCheckinReason="";
+   pendingPlannerTask=null;
+   showScreen("login");
+   showToast("Logged out successfully.");
+ }
+}
+
+function setBackground(colour){
+  document.documentElement.style.setProperty('--bg', colour);
+  showToast('Background colour changed.');
+}
+
+/* ========================================================
+   MEMBER 2 - AI COMPANION LOGIC (Chat + Smart Study Planner)
+   ======================================================== */
+function switchM2Tab(tab) {
+  document.getElementById('btnTabChat').classList.remove('selected');
+  document.getElementById('btnTabPlanner').classList.remove('selected');
+  if(tab === 'chat') {
+    document.getElementById('btnTabChat').classList.add('selected');
+    document.getElementById('m2ChatTab').style.display = 'flex';
+    document.getElementById('m2PlannerTab').style.display = 'none';
+    document.getElementById('m2Title').textContent = 'AI Companion';
+  } else {
+    document.getElementById('btnTabPlanner').classList.add('selected');
+    document.getElementById('m2ChatTab').style.display = 'none';
+    document.getElementById('m2PlannerTab').style.display = 'block';
+    document.getElementById('m2Title').textContent = 'AI Planner';
+  }
+}
+
+function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+
+  appendMessage('You', text, true);
+  input.value = '';
+
+  setTimeout(() => {
+    let response = "I hear you, and I can feel how heavy this is right now. 🫂 Please be gentle with yourself. Let's step back, divide this massive mountain into tiny, manageable steps, and navigate it safely together.";
+    const lowText = text.toLowerCase();
+
+    if(lowText.includes('stress') || lowText.includes('routine')) {
+      response = "Take a slow, deep breath for me right now. ✨ Close your eyes and inhale for 4 seconds... hold it for 4... then let it completely exhaust away. You are carrying a lot, but you don't have to navigate it all this very second.";
+    } else if(lowText.includes('plan') || lowText.includes('assignment')) {
+      response = "Organizing your roadmap is a beautiful way to quiet down an anxious mind! 📝 I highly recommend checking out our dedicated **AI Planner** tab right at the top of our interface. It will visually organize everything beautifully.";
+    } else if(lowText.includes('overwhelmed') || lowText.includes('load') || lowText.includes('tired')) {
+      response = "It makes complete sense that you are feeling overwhelmed. 🩹 Academic pressure can feel so heavy. Let's make an agreement: ignore the whole big picture for an hour, and let's just secure one small micro-step first. I'm cheering you on!";
+    }
+    appendMessage('MindLink AI', response, false);
+  }, 750);
+}
+
+function sendQuickPrompt(promptText) {
+  document.getElementById('chatInput').value = promptText;
+  sendChatMessage();
+}
+
+function appendMessage(sender, text, isUser) {
+  const history = document.getElementById('chatHistory');
+  const msg = document.createElement('div');
+  if(isUser) {
+    msg.style.cssText = "background:var(--line); padding:10px 14px; border-radius:14px 14px 4px 14px; align-self:flex-end; max-width:85%; font-size:13px; color:var(--text); line-height:1.4;";
+    const label = document.createElement('strong');
+    label.textContent = sender + ': ';
+    msg.appendChild(label);
+    msg.appendChild(document.createTextNode(text));
+  } else {
+    msg.style.cssText = "background:var(--primary2); padding:10px 14px; border-radius:14px 14px 14px 4px; align-self:flex-start; max-width:85%; font-size:13px; line-height:1.4;";
+    const label = document.createElement('strong');
+    label.textContent = sender + ': ';
+    msg.appendChild(label);
+    msg.appendChild(document.createTextNode(text));
+  }
+  history.appendChild(msg);
+  history.scrollTop = history.scrollHeight;
+}
+
+document.getElementById('chatInput').addEventListener('keydown', function(event) {
+  if(event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    sendChatMessage();
+  }
+});
+
+function generateAIPlan() {
+  const task = document.getElementById('plannerTask').value.trim() || "Study Assignment Plan";
+  const days = parseInt(document.getElementById('plannerDays').value) || 3;
+  const diff = document.getElementById('plannerDifficulty').value;
+
+  if(days <= 0) {
+    showToast("Please enter a valid timeline duration.");
+    return;
+  }
+
+  let badgeClass = 'badge-medium';
+  if(diff === 'Low Load') badgeClass = 'badge-low';
+  if(diff === 'High Load') badgeClass = 'badge-high';
+
+  pendingPlannerTask = { task, days, diff };
+
+  let html = `
+    <div class="plan-header-badge ${badgeClass}">
+      📊 <strong>${task}</strong> • ${diff}
+    </div>
+    <div class="plan-container">
+  `;
+
+  for(let i = 1; i <= days; i++) {
+    let dayTitle = `Day ${i}: Building Phase`;
+    let dayDesc = "Build out core arguments or practice configurations. Take an intentional 5-minute movement break every 25 minutes.";
+
+    if(i === 1) {
+      dayTitle = "Day 1: Setup & Discovery";
+      dayDesc = "Gather files, sketch out an initial 3-point basic skeleton structure, and avoid getting caught up in deep detail early.";
+    } else if(i === days) {
+      dayTitle = `Day ${i}: Polishing Loop`;
+      dayDesc = "Review grammar layout elements, check constraints, and stop working early to give your brain full restorative rest.";
+    }
+
+    html += `
+      <div class="plan-step-card">
+        <div class="plan-step-num">${i}</div>
+        <div class="plan-step-content">
+          <h4>${dayTitle}</h4>
+          <p>${dayDesc}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  html += `
+    </div>
+    <div class="tip-card" style="margin-top:14px; background:var(--primary2); border-color:var(--line);">
+      <p class="small" style="color:var(--text);">💡 <strong>Companion Insight:</strong> Action cures worry. Even ticking off half of Day 1's roadmap is a huge victory!</p>
+    </div>
+    <button class="btn" onclick="addPlannerTaskToWorkload()">➕ Add to Well-being Workload</button>
+  `;
+
+  document.getElementById('aiPlanOutput').innerHTML = html;
+  showToast("Burnout-proof timeline compiled!");
+}
+
+function addPlannerTaskToWorkload(){
+  if(!pendingPlannerTask){
+    showToast("Generate a study plan first.");
+    return;
+  }
+  const priorityMap = {
+    'High Load':'High Priority',
+    'Medium Load':'Medium Priority',
+    'Low Load':'Low Priority'
+  };
+  const duplicate = globalTaskItems.some(item => item.title.toLowerCase() === pendingPlannerTask.task.toLowerCase());
+  if(duplicate){
+    showToast("This task is already in the workload dashboard.");
+    return;
+  }
+  globalTaskItems.push({
+    id: Date.now(),
+    title: pendingPlannerTask.task,
+    priority: priorityMap[pendingPlannerTask.diff],
+    meta: `Due: In ${pendingPlannerTask.days} day${pendingPlannerTask.days === 1 ? '' : 's'} • Added by AI Planner`,
+    completed: false
+  });
+  evaluateWorkloadProgressState();
+  showToast("Task added to your well-being workload.");
+}
+
+/* ========================================================
+   MEMBER 3 - ANALYTICS DASHBOARD JAVASCRIPT CONTROLLERS
+   ======================================================== */
+function switchDashboardTab(target) {
+  document.getElementById('tabMood').classList.remove('active');
+  document.getElementById('tabStress').classList.remove('active');
+  document.getElementById('tabWorkload').classList.remove('active');
+  document.getElementById('tabSummary').classList.remove('active');
+
+  document.getElementById('moodSubDashboard').style.display = 'none';
+  document.getElementById('stressSubDashboard').style.display = 'none';
+  document.getElementById('workloadSubDashboard').style.display = 'none';
+  document.getElementById('summarySubDashboard').style.display = 'none';
+
+  if(target === 'mood') {
+    document.getElementById('tabMood').classList.add('active');
+    document.getElementById('moodSubDashboard').style.display = 'block';
+  } else if (target === 'stress') {
+    document.getElementById('tabStress').classList.add('active');
+    document.getElementById('stressSubDashboard').style.display = 'block';
+  } else if (target === 'workload') {
+    document.getElementById('tabWorkload').classList.add('active');
+    document.getElementById('workloadSubDashboard').style.display = 'block';
+  } else {
+    document.getElementById('tabSummary').classList.add('active');
+    document.getElementById('summarySubDashboard').style.display = 'block';
+  }
+}
+
+function selectTrendDay(index) {
+  for(let i=0; i<7; i++){ document.getElementById(`btnDay${i}`).classList.remove('active'); }
+  document.getElementById(`btnDay${index}`).classList.add('active');
+  const data = weeklyTrendData[index];
+  const moodLabels = { great: "😄 Great", good: "🙂 Good", okay: "😐 Okay", sad: "😢 Sad", angry: "😡 Angry" };
+  document.getElementById('detailDayName').textContent = `${data.day} Log Info`;
+  document.getElementById('detailLogText').innerHTML = `
+    <strong>Mood:</strong> ${moodLabels[data.mood]}<br/>
+    <strong>Stress Score:</strong> ${data.stress} / 5<br/>
+    <strong>Notes/Context:</strong> ${data.reason}
+  `;
+}
+
+function triggerPeakStressModal(dayName) {
+  document.getElementById('m3ModalTitle').textContent = `⚡ Peak Stress Day: ${dayName}`;
+  document.getElementById('m3ModalBody').innerHTML = `This week's <strong>${dayName}</strong> was your most stressful day.<br><br><em>"Please don't stress yourself so much. You're carrying a heavy workload, but remember that your worth isn't measured by your productivity. Take a deep breath, take it one step at a time, and don't forget to look after yourself."</em>`;
+  document.getElementById('m3PeakModal').classList.add('show');
+}
+function closePeakModal() { document.getElementById('m3PeakModal').classList.remove('show'); }
+
+/* Checklist Engine with Long-Press Delete */
+function startTaskPress(id) {
+  taskPressTimer = setTimeout(() => {
+    if(confirm("Do you want to delete this task?")) {
+      globalTaskItems = globalTaskItems.filter(t => t.id !== id);
+      evaluateWorkloadProgressState();
+      showToast("Task deleted successfully.");
+    }
+  }, 800);
+}
+function cancelTaskPress() { clearTimeout(taskPressTimer); }
+
+function toggleTaskCompletionState(id) {
+  const task = globalTaskItems.find(t => t.id === id);
+  if(task) { task.completed = !task.completed; evaluateWorkloadProgressState(); }
+}
+function openAddTaskModal() { document.getElementById('addTaskModal').classList.add('show'); }
+function closeAddTaskModal() {
+  document.getElementById('addTaskModal').classList.remove('show');
+  document.getElementById('newTaskTitleInput').value = ""; document.getElementById('newTaskDueInput').value = "";
+}
+
+function submitInjectedTask() {
+  const title = document.getElementById('newTaskTitleInput').value.trim();
+  if(title === "") { alert("Please supply a valid task title string."); return; }
+  const newId = globalTaskItems.length > 0 ? Math.max(...globalTaskItems.map(t => t.id)) + 1 : 1;
+  globalTaskItems.push({
+    id: newId, title: title, priority: document.getElementById('newTaskPrioritySelect').value,
+    meta: `Due: ${document.getElementById('newTaskDueInput').value.trim() || "Soon"}`, completed: false
+  });
+  closeAddTaskModal(); evaluateWorkloadProgressState(); showToast("New task integrated into live checklist.");
+}
+
+function evaluateWorkloadProgressState() {
+  const total = globalTaskItems.length;
+  const completed = globalTaskItems.filter(t => t.completed).length;
+
+  const countDiv = document.getElementById('pendingTasksCountDiv');
+  const labelDiv = document.getElementById('pendingTasksStatusLabel');
+
+  countDiv.textContent = `${completed}/${total}`;
+
+  if(total === 0) {
+     labelDiv.textContent = "No Tasks Yet";
+     labelDiv.style.color = "var(--muted)";
+  } else if (completed === 0) {
+     labelDiv.textContent = "Get Started";
+     labelDiv.style.color = "var(--muted)";
+  } else if (completed === total) {
+     labelDiv.textContent = "100% Completed! 🎉";
+     labelDiv.style.color = "var(--green)";
+     document.getElementById('m3TaskRecParagraphText').textContent = "Incredible effort! All active targets cleared. Enjoy your well-earned downtime!";
+     document.getElementById('m3TaskRecBoxCard').style.background = "linear-gradient(135deg, var(--green2), var(--primary2))";
+  } else if (completed / total <= 0.5) {
+     labelDiv.textContent = "Keep Moving";
+     labelDiv.style.color = "var(--yellow)";
+  } else {
+     labelDiv.textContent = "Good Pace";
+     labelDiv.style.color = "var(--green)";
+     document.getElementById('m3TaskRecParagraphText').textContent = "Your mid-week task volume is peaking. Consider pacing your Calculus study sessions to prevent subsequent stress compounding on Tuesday.";
+     document.getElementById('m3TaskRecBoxCard').style.background = "linear-gradient(135deg, #FEF3C7, var(--primary2))";
+  }
+
+  const ring = document.getElementById('circularProgressRingElement');
+  let percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+  document.getElementById('circularPercentText').textContent = `${percentage}% Finished`;
+  document.getElementById('circularPendingItemsText').textContent = `${total - completed} items pending`;
+
+  let offsetValue = 201.06 - ((percentage / 100) * 201.06);
+  ring.style.strokeDashoffset = offsetValue;
+
+  let html = "";
+  globalTaskItems.forEach(task => {
+    let tagClass = "tag-low";
+    if(task.priority.includes("High")) tagClass = "tag-high";
+    if(task.priority.includes("Medium")) tagClass = "tag-medium";
+
+    // Injecting Mouse and Touch event handlers into HTML template string directly for Long-press functionality
+    html += `
+      <div class="workload-item ${task.completed ? 'completed-task' : ''}"
+           onmousedown="startTaskPress(${task.id})" onmouseup="cancelTaskPress()" onmouseleave="cancelTaskPress()"
+           ontouchstart="startTaskPress(${task.id})" ontouchend="cancelTaskPress()">
+        <input type="checkbox" class="workload-cb" ${task.completed ? 'checked' : ''} onchange="toggleTaskCompletionState(${task.id})">
+        <div class="workload-body-content">
+          <div class="workload-meta"><h4 class="workload-title">${task.title}</h4><span class="workload-tag ${tagClass}">${task.priority}</span></div>
+          <p class="small">${task.meta}</p>
+        </div>
+      </div>
+    `;
+  });
+  document.getElementById('workloadLiveChecklistGroup').innerHTML = html;
+}
+
+/* Academic Stopwatch & Timer Engine Controls */
+function openStudyTimerModal() { document.getElementById('studyTimerModal').classList.add('show'); }
+function closeStudyTimerModal() { document.getElementById('studyTimerModal').classList.remove('show'); }
+function toggleStopwatchSystem() {
+  const btn = document.getElementById('toggleTimerBtn');
+  if(stopwatchIntervalId) {
+    clearInterval(stopwatchIntervalId); stopwatchIntervalId = null;
+    btn.textContent = "Resume Desk"; btn.className = "btn green"; showToast("Study session paused.");
+  } else {
+    stopwatchIntervalId = setInterval(() => { stopwatchTotalSeconds++; formatAndUpdateStopwatchDisplay(); }, 1000);
+    btn.textContent = "Pause Engine"; btn.className = "btn green"; btn.style.backgroundColor = "#EF4444"; showToast("Focus countdown initiated.");
+  }
+}
+function resetStopwatchSystem() {
+  if(stopwatchIntervalId) { clearInterval(stopwatchIntervalId); stopwatchIntervalId = null; }
+  stopwatchTotalSeconds = 0; formatAndUpdateStopwatchDisplay();
+  document.getElementById('toggleTimerBtn').textContent = "Start Session";
+  document.getElementById('toggleTimerBtn').style.backgroundColor = "var(--green)";
+}
+function formatAndUpdateStopwatchDisplay() {
+  let hrs = Math.floor(stopwatchTotalSeconds / 3600); let mins = Math.floor((stopwatchTotalSeconds % 3600) / 60); let secs = stopwatchTotalSeconds % 60;
+  let padH = String(hrs).padStart(2, '0'); let padM = String(mins).padStart(2, '0'); let padS = String(secs).padStart(2, '0');
+  let formatted = `${padH}:${padM}:${padS}`;
+  document.getElementById('stopwatchDisplay').textContent = formatted;
+  document.getElementById('coverTotalHoursSpan').textContent = `${padH}h ${padM}m ${padS}s`;
+}
+
+/* Daily Study Modal Controller */
+function openDailyStudyModal() {
+  document.getElementById('dailyStudyModal').classList.add('show');
+  renderAcademicPieChart();
+}
+function closeDailyStudyModal() {
+  document.getElementById('dailyStudyModal').classList.remove('show');
+}
+
+function renderAcademicPieChart() {
+  const canvas = document.getElementById('m3AcademicPieChartCanvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const entries = Object.entries(dailyStudyDataMinutes);
+  const totalMinutes = entries.reduce((sum, current) => sum + current[1], 0);
+
+  let currentAngle = -Math.PI / 2;
+  const colors = ["#2478E8", "#7C5CFF", "#00A6A6", "#F59E0B", "#EC4899", "#37C686", "#6D7E8F"];
+
+  entries.forEach((day, idx) => {
+    let portionSliceAngle = (day[1] / totalMinutes) * (2 * Math.PI);
+    ctx.beginPath(); ctx.moveTo(65, 65);
+    ctx.arc(65, 65, 60, currentAngle, currentAngle + portionSliceAngle); ctx.closePath();
+    ctx.fillStyle = colors[idx % colors.length]; ctx.fill();
+    currentAngle += portionSliceAngle;
+  });
+
+  ctx.beginPath(); ctx.arc(65, 65, 26, 0, 2 * Math.PI);
+  ctx.fillStyle = document.body.classList.contains("dark") ? "#172337" : "#FFFFFF";
+  ctx.fill();
+}
+
+function triggerDayStudyInsight(dayName) {
+  const box = document.getElementById('m3StudyFeedbackDynamicBox');
+  const text = document.getElementById('m3StudyFeedbackDynamicText');
+  const minutesTracked = dailyStudyDataMinutes[dayName];
+  box.style.display = "block";
+  if(dayName === "Wednesday") text.innerHTML = `📅 Wednesday Focus: <strong>${minutesTracked} mins</strong><br>🚀 <em>"Wow, this is your locked in era!"</em>`;
+  else text.innerHTML = `📅 ${dayName} Focus: <strong>${minutesTracked} mins</strong><br>✨ <em>"Consistent discipline builds great habits. Keep up the good work!"</em>`;
+}
+
+/* Daily Gratitude Journal Engine */
+function saveGratitude() {
+  const input = document.getElementById('gratitudeInput');
+  const feedback = document.getElementById('gratitudeFeedbackText');
+
+  if(input.value.trim() === "") {
+     showToast("Please write something before saving.");
+     return;
+  }
+
+  const motivationQuotes = [
+    "Your perspective is beautiful. Keep focusing on the good!",
+    "Gratitude turns what we have into enough. Excellent entry!",
+    "Thank you for sharing your positive energy today.",
+    "Acknowledging the good is the first step to joy. Well done!",
+    "A thankful heart is a happy heart. Stay strong!"
+  ];
+  const randomQuote = motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)];
+
+  input.value = "";
+  feedback.style.display = "block";
+  feedback.style.color = "var(--green)";
+  feedback.innerHTML = `<strong>Saved!</strong> ${randomQuote}`;
+  showToast("Gratitude entry securely saved!");
+}
+
+/* Companion Well-being Snowman Pet Customisation (CSS Element Injections) */
+function togglePetCustomizer() {
+  const panel = document.getElementById('petCustomizePanel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+function triggerPetEmote(emote) {
+  const avatar = document.getElementById('virtualPetAvatarBody');
+  avatar.classList.remove('animate-wave', 'animate-jump', 'animate-spin');
+  void avatar.offsetWidth; // Reflow to reset animations
+  avatar.classList.add(`animate-${emote}`);
+  showToast(`Pet performs ${emote} command!`);
+}
+
+function applyPetStyle(category, option) {
+  const overlayPattern = document.getElementById('petPatternClothingOverlay');
+  const headAccessory = document.getElementById('petHeadAccessoryOverlay');
+  const neckAccessory = document.getElementById('petNeckAccessoryOverlay');
+
+  const head = document.getElementById('petHeadColor');
+  const body = document.getElementById('petBodyColor');
+
+  if(category === 'pattern') {
+    overlayPattern.className = "clothing-layer";
+    if(option !== 'none') overlayPattern.classList.add(`pattern-${option}`);
+    showToast("Wardrobe patterns updated.");
+  } else if (category === 'accessory') {
+    // Clear out current rendered HTML elements to strip emojis
+    headAccessory.innerHTML = "";
+    neckAccessory.innerHTML = "";
+
+    if(option === 'hat') {
+      headAccessory.innerHTML = '<div class="css-hat"><div class="hat-top"></div><div class="hat-brim"></div></div>';
+    } else if(option === 'sunglasses') {
+      headAccessory.innerHTML = '<div class="css-glasses"><div class="lens dark"></div><div class="glasses-bridge"></div><div class="lens dark"></div></div>';
+    } else if(option === 'spectacles') {
+      headAccessory.innerHTML = '<div class="css-glasses"><div class="lens clear"></div><div class="glasses-bridge"></div><div class="lens clear"></div></div>';
+    } else if(option === 'necktie') {
+      neckAccessory.innerHTML = '<div class="css-necktie"><div class="tie-knot"></div><div class="tie-long"></div></div>';
+    } else if(option === 'scarf') {
+      neckAccessory.innerHTML = '<div class="css-scarf"><div class="scarf-wrap"></div><div class="scarf-tail"></div></div>';
+    }
+    showToast("Accessories swapped.");
+  } else if (category === 'color') {
+    head.style.backgroundColor = option;
+    body.style.backgroundColor = option;
+    showToast("Pet theme color calibrated.");
+  }
+}
+
+/* ========================================================
+   HYDRATION & SLEEP CHECK-IN LOGIC
+   ======================================================== */
+function openHydrationModal() {
+  document.getElementById('hydrationModal').classList.add('show');
+  document.getElementById('hydroStep1').style.display = 'block';
+  document.getElementById('hydroStep2').style.display = 'none';
+  document.getElementById('hydroFeedback').textContent = '';
+  document.getElementById('bodyWeightInput').value = '';
+  document.getElementById('waterIntakeInput').value = '';
+}
+
+function closeHydrationModal() {
+  document.getElementById('hydrationModal').classList.remove('show');
+}
+
+function calculateHydration() {
+  const weight = parseFloat(document.getElementById('bodyWeightInput').value);
+  if(isNaN(weight) || weight <= 0) {
+    showToast("Please enter a valid positive body weight.");
+    return;
+  }
+  hydroGoalOz = weight * 0.5;
+  document.getElementById('hydroGoalText').textContent = hydroGoalOz.toFixed(1);
+  document.getElementById('hydroStep1').style.display = 'none';
+  document.getElementById('hydroStep2').style.display = 'block';
+}
+
+function checkHydration() {
+  const intake = parseFloat(document.getElementById('waterIntakeInput').value);
+  if(isNaN(intake) || intake < 0) {
+    showToast("Please enter a valid fluid intake.");
+    return;
+  }
+
+  const feedback = document.getElementById('hydroFeedback');
+  if (intake >= hydroGoalOz) {
+    feedback.innerHTML = `<span style="color:var(--green)">Congratulations! 🎉 You've fully met your daily hydration requirement. Excellent work taking care of your body!</span>`;
+  } else if (intake >= (hydroGoalOz * 0.5)) {
+    feedback.innerHTML = `<span style="color:var(--yellow)">You're getting there! 💧 You've sort of fulfilled your requirement, but keep going. Drink a little more to stay completely energized!</span>`;
+  } else {
+    feedback.innerHTML = `<span style="color:#EF4444">Let's drink some water! 🏜️ You haven't fulfilled your requirement yet. Grab a glass right now to boost your brainpower and stay refreshed!</span>`;
+  }
+
+  document.getElementById('hydrationCoverText').textContent = `${intake} / ${hydroGoalOz.toFixed(0)} oz`;
+}
+
+function openSleepModal() {
+  document.getElementById('sleepModal').classList.add('show');
+  document.getElementById('sleepFeedback').textContent = '';
+  document.getElementById('sleepHoursInput').value = '';
+}
+
+function closeSleepModal() {
+  document.getElementById('sleepModal').classList.remove('show');
+}
+
+function checkSleep() {
+  const hours = parseFloat(document.getElementById('sleepHoursInput').value);
+  if(isNaN(hours) || hours < 0) {
+    showToast("Please enter valid hours slept.");
+    return;
+  }
+
+  const feedback = document.getElementById('sleepFeedback');
+  if (hours < 7) {
+    feedback.innerHTML = `<span style="color:#EF4444">You need more rest! 🥱 Try setting an earlier bedtime tonight. Sleep is essential for your memory and focus, so please sleep early!</span>`;
+  } else if (hours > 9) {
+    feedback.innerHTML = `<span style="color:var(--primary)">Wow, you are sleeping like a baby! 🍼 Such an abundance of rest means you're totally recharged and ready to conquer the day!</span>`;
+  } else {
+    feedback.innerHTML = `<span style="color:var(--green)">You are sleeping good! 🌟 That is the perfect amount of rest. Enjoy your happy, balanced energy today!</span>`;
+  }
+
+  document.getElementById('sleepCoverText').textContent = `${hours}h • Logged`;
+}
+
+function renderMember3Dashboards() {
+  const moodLabels = { great: "😄 Great", good: "🙂 Good", okay: "😐 Okay", sad: "😢 Sad", angry: "😡 Angry" };
+  const moodColors = { great: "#37C686", good: "#2478E8", okay: "#FACC15", sad: "#F59E0B", angry: "#EF4444" };
+
+  let totalLogs = weeklyTrendData.length;
+  let moodCounts = { great: 0, good: 0, okay: 0, sad: 0, angry: 0 };
+  let stressSum = 0; let peakIndex = 0; let peakStressVal = -1;
+
+  weeklyTrendData.forEach((log, index) => {
+    moodCounts[log.mood] = (moodCounts[log.mood] || 0) + 1;
+    stressSum += log.stress;
+    if(log.stress > peakStressVal) { peakStressVal = log.stress; peakIndex = index; }
+  });
+
+  let averageStress = totalLogs > 0 ? (stressSum / totalLogs).toFixed(1) : 0;
+  let domMoodKey = "okay"; let maxCount = -1;
+  Object.keys(moodCounts).forEach(key => {
+    if(moodCounts[key] > maxCount) { maxCount = moodCounts[key]; domMoodKey = key; }
+  });
+
+  document.getElementById('m3DomMood').textContent = moodLabels[domMoodKey];
+  document.getElementById('m3AvgStress').textContent = `${averageStress} / 5`;
+
+  let stressStatusNode = document.getElementById('m3StressStatus');
+  if(averageStress >= 4) { stressStatusNode.textContent = "High Stress"; stressStatusNode.style.color = "#ef4444"; }
+  else if(averageStress >= 2.5) { stressStatusNode.textContent = "Moderate"; stressStatusNode.style.color = "var(--primary)"; }
+  else { stressStatusNode.textContent = "Low / Balanced"; stressStatusNode.style.color = "var(--green)"; }
+
+  let moodChartHTML = "";
+  Object.keys(moodLabels).forEach(key => {
+    let count = moodCounts[key] || 0;
+    let pct = totalLogs > 0 ? (count / totalLogs) * 100 : 0;
+    moodChartHTML += `
+      <div class="chart-bar-row">
+        <span class="chart-label">${moodLabels[key].split(" ")[0]} ${key.toUpperCase()}</span>
+        <div class="chart-track"><div class="chart-fill" style="width: ${pct}%; background: ${moodColors[key]};"></div></div>
+        <span style="font-size:12px; font-weight:700; width:38px; text-align:right;">${pct.toFixed(0)}%</span>
+      </div>`;
+  });
+  document.getElementById('moodChartContainer').innerHTML = moodChartHTML;
+
+  // Fixed SVG Mapping coordinates logic - dynamically binds marker exact position to responsive container
+  let svgPoints = []; let dotVerticesHTML = ""; let peakX = 0; let peakY = 0;
+  weeklyTrendData.forEach((log, index) => {
+    let xCoord = 20 + (index * 51.6); let yCoord = 85 - ((log.stress - 1) * 18);
+    svgPoints.push(`${xCoord},${yCoord}`);
+    dotVerticesHTML += `<circle cx="${xCoord}" cy="${yCoord}" r="4" fill="var(--primary)" />`;
+    if(index === peakIndex) { peakX = xCoord; peakY = yCoord; }
+  });
+
+  document.getElementById('graphPolyline').setAttribute('points', svgPoints.join(' '));
+  document.getElementById('svgDotVerticesGroup').innerHTML = dotVerticesHTML;
+
+  const peakMarkerEl = document.getElementById('peakStressElementMarker');
+  if(peakMarkerEl) {
+    peakMarkerEl.style.display = "block";
+    peakMarkerEl.style.left = `${(peakX / 350) * 100}%`;
+    peakMarkerEl.style.top = `${(peakY / 100) * 100}%`;
+    peakMarkerEl.onclick = function() { triggerPeakStressModal(weeklyTrendData[peakIndex].day); };
+  }
+
+  let historyHTML = "";
+  weeklyTrendData.slice().reverse().forEach(log => {
+    historyHTML += `
+      <div class="history-item">
+        <div class="history-left">
+          <span class="history-emoji">${moodLabels[log.mood].split(" ")[0]}</span>
+          <div class="history-meta"><h4>${log.reason.length > 28 ? log.reason.substring(0, 25) + '...' : log.reason}</h4><p>${log.day}</p></div>
+        </div>
+        <span class="history-right">Stress: ${log.stress}</span>
+      </div>`;
+  });
+  document.getElementById('moodHistoryList').innerHTML = historyHTML;
+
+  evaluateWorkloadProgressState();
+  selectTrendDay(0);
+}
+
+/* ========================================================
+   MEMBER 4 - PEER SUPPORT & RESOURCES LOGIC
+   ======================================================== */
+function hideMember4Panels(){
+  const groupPage = document.getElementById("groupPage");
+  const chatPanel = document.getElementById("supportChatPanel");
+  if(groupPage) groupPage.style.display = "none";
+  if(chatPanel) chatPanel.style.display = "none";
+}
+
+function chatBubble(name, text, mine){
+  const wrap = document.createElement("div");
+  wrap.className = "chat-msg" + (mine ? " me" : "");
+  if(!mine && name){
+    const label = document.createElement("div");
+    label.className = "chat-name";
+    label.textContent = name;
+    wrap.appendChild(label);
+  }
+  const body = document.createElement("div");
+  body.textContent = text;
+  wrap.appendChild(body);
+  return wrap;
+}
+
+function scrollChatToBottom(container){
+  if(container){ container.scrollTop = container.scrollHeight; }
+}
+
+const groupConversations = {
+  "Study Stress Circle":[
+    {name:"Jia En", text:"I am doing my assignment in small parts today so it feels less scary."},
+    {name:"Marcus", text:"Same. I made a mini checklist first. It helped me start."},
+    {name:"Nora", text:"Anyone else preparing for common test? We can share study tips here."}
+  ],
+  "Calm Corner":[
+    {name:"Avery", text:"Reminder to unclench your jaw and take one slow breath."},
+    {name:"Rae", text:"I took a 5 minute break and felt clearer after that."},
+    {name:"Danish", text:"Soft music helps me reset when I feel overwhelmed."}
+  ],
+  "Friendship Support":[
+    {name:"Alya", text:"It is okay to feel hurt. You can talk it out when you feel calmer."},
+    {name:"Ben", text:"I usually write down what I want to say before speaking to a friend."},
+    {name:"Sofia", text:"You are not alone. Friendship problems happen, but support helps."}
+  ]
+};
+
+const groupReplies = {
+  "Study Stress Circle":[
+    {name:"Jia En", text:"You can start with the easiest task first. It makes the rest feel more manageable."},
+    {name:"Marcus", text:"Try a 25 minute focus block, then rest for 5 minutes."},
+    {name:"Nora", text:"Let us know what subject it is. Someone here may have a useful tip."}
+  ],
+  "Calm Corner":[
+    {name:"Avery", text:"Thanks for sharing. Take it one step at a time."},
+    {name:"Rae", text:"Maybe pause, drink water, and come back when your mind feels clearer."},
+    {name:"Danish", text:"You are doing your best. A short reset can really help."}
+  ],
+  "Friendship Support":[
+    {name:"Alya", text:"That sounds difficult. Maybe think about what you need from the friendship first."},
+    {name:"Ben", text:"You could speak calmly and use ‘I feel’ statements."},
+    {name:"Sofia", text:"Take your time. You do not need to solve everything immediately."}
+  ]
+};
+
+function openGroup(groupName){
+  selectedGroup = groupName;
+  document.getElementById("groupPage").style.display = "block";
+  document.getElementById("groupTitle").textContent = groupName;
+
+  const descriptions = {
+    "Study Stress Circle":"A peer group for deadlines, exams, study pressure and workload support.",
+    "Calm Corner":"A calm group for short breaks, encouragement and simple wellness check-ins.",
+    "Friendship Support":"A peer group for friendship issues, feeling left out and social stress."
+  };
+
+  document.getElementById("groupDesc").textContent = descriptions[groupName] || "A safe peer support group.";
+  document.getElementById("joinGroupBtn").style.display = "block";
+  document.getElementById("groupChat").style.display = "none";
+  document.getElementById("groupChatHistory").innerHTML = "";
+  showToast("Opened " + groupName + ".");
+}
+
+function loadGroupMessages(){
+  const history = document.getElementById("groupChatHistory");
+  history.innerHTML = "";
+  const joined = chatBubble("", "You joined " + selectedGroup + ".", true);
+  history.appendChild(joined);
+  (groupConversations[selectedGroup] || []).forEach(item => {
+    history.appendChild(chatBubble(item.name, item.text, false));
+  });
+  scrollChatToBottom(document.getElementById("groupChat"));
+}
+
+function joinSelectedGroup(){
+  document.getElementById("joinGroupBtn").style.display = "none";
+  document.getElementById("groupChat").style.display = "block";
+  loadGroupMessages();
+  showToast("Joined " + selectedGroup + ".");
+}
+
+function sendGroupPost(){
+  const box = document.getElementById("groupPost");
+  const text = box.value.trim();
+  if(text === ""){
+    showToast("Type a message first.");
+    return;
+  }
+  const history = document.getElementById("groupChatHistory");
+  history.appendChild(chatBubble("", text, true));
+  box.value = "";
+  showToast("Message posted to group.");
+  scrollChatToBottom(document.getElementById("groupChat"));
+
+  const typing = chatBubble("Someone is replying", "typing...", false);
+  typing.classList.add("typing");
+  history.appendChild(typing);
+  scrollChatToBottom(document.getElementById("groupChat"));
+
+  setTimeout(() => {
+    typing.remove();
+    const replies = groupReplies[selectedGroup] || [{name:"Peer Member", text:"Thanks for sharing. We are here with you."}];
+    const reply = replies[Math.floor(Math.random() * replies.length)];
+    history.appendChild(chatBubble(reply.name, reply.text, false));
+    scrollChatToBottom(document.getElementById("groupChat"));
+  }, 700);
+}
+
+function openSupportChat(type, person){
+  selectedSupportNeed = type;
+  selectedSupportPerson = person;
+  showMember4Tab("profile");
+  document.getElementById("supportChatPanel").style.display = "block";
+  document.getElementById("supportChatTitle").textContent = "Chat with " + person;
+
+  const greetings = {
+    study:"Hi, I can help you break your schoolwork into smaller steps. What assignment or test is stressing you most?",
+    stress:"Hi, I am here to listen. We can start with what is making you feel overwhelmed right now.",
+    friends:"Hi, friendship problems can feel heavy. Tell me what happened and what kind of support you need."
+  };
+
+  document.getElementById("supportGreeting").textContent = greetings[type] || "Hi, I am here to listen.";
+  document.getElementById("supportChatHistory").innerHTML = "";
+  showToast("Opened support chat.");
+}
+
+function startSelectedSupportChat(){
+  const map = {
+    study:"Mei - Study Ambassador",
+    stress:"Ryan - Wellness Ambassador",
+    friends:"Alya - Peer Ambassador"
+  };
+  openSupportChat(selectedSupportNeed, map[selectedSupportNeed]);
+}
+
+function quickSupportMessage(text){
+  document.getElementById("supportMessage").value = text;
+}
+
+function getAmbassadorReply(text){
+  const lower = text.toLowerCase();
+  if(selectedSupportNeed === "study"){
+    if(lower.includes("exam") || lower.includes("test")) return selectedSupportPerson + ": Let us pick 2 topics to revise first. Start with the one you understand least, then do a short practice question.";
+    if(lower.includes("assignment") || lower.includes("deadline")) return selectedSupportPerson + ": Let us split it into steps: research, outline, draft, then check. Which step are you at now?";
+    return selectedSupportPerson + ": I hear you. Choose one small school task you can complete in 10 minutes, then we can plan the next step.";
+  }
+  if(selectedSupportNeed === "stress"){
+    if(lower.includes("overwhelmed") || lower.includes("panic")) return selectedSupportPerson + ": Thank you for telling me. Pause for one minute, breathe slowly, and name one thing that feels most urgent right now.";
+    return selectedSupportPerson + ": That sounds stressful. Let us slow things down and separate what you can control from what can wait.";
+  }
+  if(lower.includes("friend") || lower.includes("left out") || lower.includes("argue")) return selectedSupportPerson + ": I hear that this is affecting you. You could write what happened first, then decide if you want to talk to them calmly.";
+  return selectedSupportPerson + ": Thanks for sharing. I am listening. What would make you feel supported right now?";
+}
+
+function sendSupportMessage(){
+  const box = document.getElementById("supportMessage");
+  const text = box.value.trim();
+  if(text === ""){
+    showToast("Type a message first.");
+    return;
+  }
+
+  const history = document.getElementById("supportChatHistory");
+  history.appendChild(chatBubble("", text, true));
+  box.value = "";
+  showToast("Message sent.");
+
+  const typing = chatBubble(selectedSupportPerson, "typing...", false);
+  typing.classList.add("typing");
+  history.appendChild(typing);
+  scrollChatToBottom(history.parentElement);
+
+  setTimeout(() => {
+    typing.remove();
+    history.appendChild(chatBubble(selectedSupportPerson, getAmbassadorReply(text).replace(selectedSupportPerson + ": ", ""), false));
+    scrollChatToBottom(history.parentElement);
+  }, 700);
+}
+
+function showMember4Tab(tab){
+  document.getElementById("member4Resources").style.display = tab === "resources" ? "block" : "none";
+  document.getElementById("member4Peer").style.display = tab === "peer" ? "block" : "none";
+  document.getElementById("member4Profile").style.display = tab === "profile" ? "block" : "none";
+  document.getElementById("tabResources").classList.toggle("active", tab === "resources");
+  document.getElementById("tabPeer").classList.toggle("active", tab === "peer");
+  document.getElementById("tabProfile").classList.toggle("active", tab === "profile");
+  if(tab !== "peer"){
+    const groupPage = document.getElementById("groupPage");
+    if(groupPage) groupPage.style.display = "none";
+  }
+}
+
+function searchResources(){
+  const box = document.getElementById('resourceSearch');
+  const result = document.getElementById('resourceResult');
+  if(!box || !result) return;
+
+  const query = box.value.toLowerCase().trim();
+  if(query === ''){
+    result.textContent = 'Try searching for stress, study, counsellor, friend or urgent.';
+  }else if(query.includes('study') || query.includes('exam') || query.includes('assignment') || query.includes('workload')){
+    result.textContent = 'Recommended: Study Stress Circle, trusted teacher support, and workload planning with an ambassador.';
+  }else if(query.includes('stress') || query.includes('overwhelmed') || query.includes('calm')){
+    result.textContent = 'Recommended: Calm Corner, school counsellor, and a wellness ambassador check-in.';
+  }else if(query.includes('friend') || query.includes('peer')){
+    result.textContent = 'Recommended: Friendship Support community or talk to a trusted teacher/counsellor.';
+  }else if(query.includes('counsellor') || query.includes('urgent') || query.includes('emergency')){
+    result.textContent = 'Recommended: Contact a school counsellor, trusted adult, or emergency services if there is immediate danger.';
+  }else{
+    result.textContent = 'No exact match found. Try: stress, study, counsellor, friend or urgent.';
+  }
+}
+
+function saveResource(name){
+  showToast(name + ' saved.');
+}
+
+function selectSupportNeed(need, element){
+  selectedSupportNeed = need;
+  document.querySelectorAll('#member4Profile .scale button').forEach(button => button.classList.remove('selected'));
+  element.classList.add('selected');
+
+  const text = {
+    study:'Study support selected. Recommended: Study Stress Circle and trusted teacher support.',
+    stress:'Stress support selected. Recommended: School counsellor or wellness ambassador support.',
+    friends:'Friends support selected. Recommended: Friendship Support group or peer listener.'
+  };
+  document.getElementById('supportNeedText').textContent = text[need];
+}
+
+/* ========================================================
+   CLOCK / GREETING INITIALISER (runs once on load)
+   ======================================================== */
+(function(){
+ const d=new Date();
+ const h=d.getHours();
+ let g="Good Evening";
+ if(h<12) g="Good Morning";
+ else if(h<18) g="Good Afternoon";
+ const opts={weekday:'long',day:'numeric',month:'long'};
+ document.getElementById("greeting").textContent=g;
+ document.getElementById("todayDate").textContent=d.toLocaleDateString(undefined,opts);
+})();
+
+/* VERSION 3.1 - click ripple and keyboard-friendly cards */
+(function enhanceInteractions(){
+  const interactiveSelector = '.btn, .back, .card.feature, .group-card, .quick-row button, .db-tab, .member4-tabs button';
+  document.querySelectorAll(interactiveSelector).forEach(el => {
+    el.classList.add('ripple-host');
+    if((el.classList.contains('feature') || el.classList.contains('group-card')) && !el.hasAttribute('tabindex')){
+      el.setAttribute('tabindex','0');
+      el.setAttribute('role','button');
+      el.addEventListener('keydown', e => {
+        if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); el.click(); }
+      });
+    }
+    el.addEventListener('pointerdown', e => {
+      const rect=el.getBoundingClientRect();
+      const ripple=document.createElement('span');
+      ripple.className='click-ripple';
+      ripple.style.left=(e.clientX-rect.left-13)+'px';
+      ripple.style.top=(e.clientY-rect.top-13)+'px';
+      el.appendChild(ripple);
+      ripple.addEventListener('animationend',()=>ripple.remove());
+    });
+  });
+})();
+
+
+/* Version 3.2 usability initialization */
+(function initialiseV32(){
+  const savedTheme=localStorage.getItem('mindlinkTheme');
+  if(savedTheme==='dark') document.body.classList.add('dark');
+
+  document.querySelectorAll('[onclick].card, .feature, .group-card, .mood, .avatar').forEach(el=>{
+    if(!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0');
+    if(!el.hasAttribute('role')) el.setAttribute('role','button');
+    el.addEventListener('keydown',e=>{
+      if(e.key==='Enter' || e.key===' '){e.preventDefault();el.click();}
+    });
+  });
+
+  const originalToggle=window.toggleMode;
+  if(typeof originalToggle==='function'){
+    window.toggleMode=function(){
+      originalToggle();
+      localStorage.setItem('mindlinkTheme',document.body.classList.contains('dark')?'dark':'light');
+    };
+  }
+})();
+
+</script>
+</body>
+</html>
